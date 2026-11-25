@@ -1,4 +1,4 @@
-<!-- Version 4 — BST Installer App -->
+<!-- Version 5 — BST Installer App -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -231,6 +231,7 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
 <header class="top">
   <img id="logo" src="BST_Logo.png" alt="BST" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'brand-fallback',textContent:'BST'}))">
   <h1 id="hdrTitle">Installer</h1>
+  <button class="modebtn" id="newBtn" aria-label="Start a new install">+ New</button>
   <button class="modebtn" id="modeBtn" aria-label="Switch view">Guide view</button>
 </header>
 <div class="progress"><div class="bar"><i id="progBar"></i></div>
@@ -255,6 +256,15 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
   <div class="sheethead"><b id="sheetTitle">Setup</b><a id="sheetExt" target="_blank" rel="noopener">Open in new tab ↗</a>
     <button class="btn sm" id="sheetClose">Done</button></div>
   <iframe id="sheetFrame" title="Sensor setup tool" allow="fullscreen"></iframe>
+</div>
+
+<div class="modal hidden" id="newModal" role="dialog" aria-modal="true">
+  <div class="modalbox">
+    <h3 id="newTitle">Start a new install?</h3>
+    <p class="muted" id="newText" style="margin:4px 0 14px"></p>
+    <button class="btn primary" style="width:100%;margin-bottom:8px" id="newYes">Start new install</button>
+    <button class="btn ghost" style="width:100%" id="newNo">Keep working on this one</button>
+  </div>
 </div>
 
 <div class="modal hidden" id="mail" role="dialog" aria-modal="true">
@@ -285,7 +295,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "4"
+  APP_VERSION: "5"
 };
 
 /* =========================================================
@@ -980,7 +990,8 @@ function rDone(){
     <span class="chip">${conf} configured on bench</span></div></div>
   <button class="btn primary" style="width:100%;margin-bottom:10px" id="mailBtn2">✉ Email me the one-page guide</button>
   <button class="btn ghost" style="width:100%;margin-bottom:10px" id="printBtn2">Print / save as PDF</button>
-  <button class="btn ghost" style="width:100%" id="scrollBtn">Read as one scrolling guide</button>`;
+  <button class="btn ghost" style="width:100%;margin-bottom:10px" id="scrollBtn">Read as one scrolling guide</button>
+  <button class="btn ghost" style="width:100%" id="nextInstall">+ Start next install</button>`;
 }
 
 /* ---------- Guide (scroll + print) ---------- */
@@ -1122,7 +1133,8 @@ function bind(){
   W.querySelectorAll("[data-opensetup]").forEach(b=>b.onclick=()=>openSetup(b.dataset.opensetup));
   const mb=W.querySelector("#mailBtn2"); if(mb) mb.onclick=openMail;
   W.querySelectorAll("[data-check]").forEach(el=>el.onchange=()=>{S.checks[el.dataset.check]=el.checked; save(); track("check",{k:el.dataset.check,v:el.checked});});
-  const rb=W.querySelector("#resetBtn"); if(rb) rb.onclick=()=>{ if(confirm("Clear this install and start over?")){ track("reset"); S=fresh(); save(); render(); } };
+  const rb=W.querySelector("#resetBtn"); if(rb) rb.onclick=()=>askNew(false);
+  const nx=W.querySelector("#nextInstall"); if(nx) nx.onclick=()=>askNew(false);
   const pb=W.querySelector("#printBtn2"); if(pb) pb.onclick=doPrint;
   const sb=W.querySelector("#scrollBtn"); if(sb) sb.onclick=()=>{S.mode="scroll";save();render();window.scrollTo({top:0});};
   document.querySelectorAll("#stepNav [data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
@@ -1161,8 +1173,31 @@ document.getElementById("sheetClose").onclick=closeSetup;
 
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") snap(); });
 
+/* ---------- New install / resume ---------- */
+function inProgress(){ return S.step>0 || Object.keys(S.qty).length>0 || S.job.customer || S.job.site; }
+function jobName(){ return [S.job.customer,S.job.site].filter(Boolean).join(" · ") || "Unnamed install"; }
+function askNew(onOpen){
+  if(!inProgress()){ newInstall(); return; }
+  document.getElementById("newTitle").textContent = onOpen ? "Welcome back" : "Start a new install?";
+  document.getElementById("newText").innerHTML = (onOpen?"You have an install in progress: ":"This clears the current install from this phone: ")+
+    `<b>${esc(jobName())}</b> (step ${S.step+1} of ${STEPS.length}). `+
+    "Anything already sent stays in the database. Your installer name and email are kept.";
+  document.getElementById("newNo").textContent = onOpen ? "Continue this install" : "Keep working on this one";
+  document.getElementById("newModal").classList.remove("hidden");
+}
+function newInstall(){
+  document.getElementById("newModal").classList.add("hidden");
+  if(inProgress()){ snap(); track("new_install",{from_step:STEPS[S.step]?.id}); }
+  const keep={installer:S.job.installer, installerEmail:S.job.installerEmail}, email=S.email;
+  S=fresh(); Object.assign(S.job,keep); S.email=email; save();
+  render(); window.scrollTo({top:0}); track("app_open",{new_install:true});
+}
+document.getElementById("newBtn").onclick=()=>askNew(false);
+document.getElementById("newYes").onclick=newInstall;
+document.getElementById("newNo").onclick=()=>document.getElementById("newModal").classList.add("hidden");
+
 /* boot */
-syncSensors(); render(); track("app_open",{ref:document.referrer||null, w:innerWidth});
+syncSensors(); render(); if(inProgress()) askNew(true); track("app_open",{ref:document.referrer||null, w:innerWidth});
 </script>
 </body>
 </html>
