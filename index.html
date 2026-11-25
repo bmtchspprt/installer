@@ -262,8 +262,8 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
 const CONFIG = {
   // Supabase: leave blank to run without analytics.
   // Use the anon/public key ONLY (never the service_role key) — it is visible in page source.
-  SUPABASE_URL: "",          // e.g. "https://abcd1234.supabase.co"
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_URL: "https://yxlvxolgrdvpkvvqwaoa.supabase.co",          // Project URL, e.g. "https://abcd1234.supabase.co"
+  SUPABASE_ANON_KEY: "sb_publishable_nEnd0eDrbX1AopNnLEl5KA_WURSl0qw",     // "anon public" key (eyJ…) OR "publishable" key (sb_publishable_…). NEVER the service_role / secret key.
   SETUP_LINKS: {
     cncr: "https://binmastercody.github.io/cncr-setup/",
     ncr:  "https://bmtchspprt.github.io/radar-setup/index.html",
@@ -273,7 +273,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "0.2.0"
+  APP_VERSION: "0.2.1"
 };
 
 /* =========================================================
@@ -371,6 +371,12 @@ function syncSensors(){
    ANALYTICS — Supabase REST (no SDK needed) + offline queue
    ========================================================= */
 const QKEY="bst_evq";
+/* Works with both key styles: legacy anon JWT ("eyJ…") and new publishable keys ("sb_publishable_…"). */
+function sbHeaders(){
+  const k=CONFIG.SUPABASE_ANON_KEY.trim(), h={"apikey":k,"Content-Type":"application/json"};
+  if(k.startsWith("eyJ")) h["Authorization"]="Bearer "+k;
+  return h;
+}
 function track(event, data={}){
   const row = {session_id:S.sid, event, step:STEPS[S.step]?.id||null, data,
     app_version:CONFIG.APP_VERSION, ua:navigator.userAgent.slice(0,200), created_at:new Date().toISOString()};
@@ -387,8 +393,7 @@ async function flush(){
   flushing=true;
   try{
     const r = await fetch(CONFIG.SUPABASE_URL+"/rest/v1/install_events",{method:"POST",
-      headers:{"apikey":CONFIG.SUPABASE_ANON_KEY,"Authorization":"Bearer "+CONFIG.SUPABASE_ANON_KEY,
-               "Content-Type":"application/json","Prefer":"return=minimal"},
+      headers:Object.assign(sbHeaders(),{"Prefer":"return=minimal"}),
       body:JSON.stringify(qd)});
     if(r.ok){ localStorage.setItem(QKEY,"[]"); }
   }catch(e){} finally{ flushing=false; }
@@ -967,7 +972,7 @@ async function sendGuide(){
     try{
       let png=null; try{ png=await svgToPng(wireDiagramSVG()); }catch(e){}
       const r=await fetch(CONFIG.SUPABASE_URL+"/functions/v1/send-guide",{method:"POST",
-        headers:{"apikey":CONFIG.SUPABASE_ANON_KEY,"Authorization":"Bearer "+CONFIG.SUPABASE_ANON_KEY,"Content-Type":"application/json"},
+        headers:sbHeaders(),
         body:JSON.stringify({to,guide:g,png,session_id:S.sid})});
       if(r.ok){ mailStatus("Sent ✓ Check your inbox."); track("email_guide",{via:"function"}); return; }
     }catch(e){}
