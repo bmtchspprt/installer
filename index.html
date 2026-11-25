@@ -1,4 +1,4 @@
-<!-- Version 5 — BST Installer App -->
+<!-- Version 6 — BST Installer App -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,8 +60,8 @@ main{padding:14px 14px calc(96px + var(--safe-b))}
 .row{display:flex;gap:10px;align-items:center}
 .grow{flex:1}
 label.f{display:block;font-size:13px;color:var(--ink2);margin:10px 0 4px;font-weight:600}
-input[type=text],select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
-input[type=text]:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
+input[type=text],input[type=email],select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+input[type=text]:focus,input[type=email]:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
 
 /* bottom nav */
 .bottombar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);
@@ -186,6 +186,25 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
 .clock{font:800 44px/1.1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;margin:6px 0 10px}
 .clock.done{color:var(--ok)}
 
+/* protocol category chips */
+.cats{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px 8px;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;border:2px solid var(--line);background:#fff;border-radius:999px;padding:10px 14px;font-weight:700;position:relative}
+.cat.on{border-color:var(--accent);background:#fff7ec}
+.cat .ct{display:inline-block;margin-left:6px;background:var(--accent);color:#1b1206;border-radius:999px;padding:0 7px;font-size:12px}
+/* photos */
+.photobtn{display:flex;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--accent);border-radius:12px;
+  padding:14px;font-weight:700;background:#fffaf2;cursor:pointer;margin-top:10px}
+.photo{position:relative;margin-top:10px}
+.photo img{width:100%;max-height:260px;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;background:#eee}
+.photo .cap{position:absolute;left:0;right:0;bottom:0;background:rgba(20,32,46,.8);color:#fff;font-size:13px;padding:6px 10px;border-radius:0 0 12px 12px}
+.photo .acts{display:flex;gap:8px;margin-top:8px}
+/* timer pill */
+.timerpill{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.statcard{display:flex;align-items:center;gap:12px}
+.statcard .big{font:800 30px/1 ui-monospace,Menlo,Consolas,monospace}
+.geo{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+
 /* ---------- desktop ---------- */
 @media (min-width:900px){
   .progress{display:none}
@@ -269,8 +288,8 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
 
 <div class="modal hidden" id="mail" role="dialog" aria-modal="true">
   <div class="modalbox">
-    <h3>Email me a one-page guide</h3>
-    <div class="muted">Wire runs, landings, vessel names and setup links for this job.</div>
+    <h3>Email the guide + recap</h3>
+    <div class="muted" id="mailInfo"></div>
     <input type="email" id="mailTo" placeholder="you@company.com" autocomplete="email" inputmode="email">
     <div class="row"><button class="btn primary" id="mailSend">Send</button><button class="btn ghost" id="mailCancel">Cancel</button></div>
     <p class="muted" id="mailStatus" style="min-height:1.2em"></p>
@@ -295,7 +314,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "5"
+  APP_VERSION: "6"
 };
 
 /* =========================================================
@@ -320,16 +339,25 @@ const PRODUCTS = [
   {sku:"rs485_usb",   name:"485→USB", variant:"Adapter", family:"usb", group:"accessories", icon:"usb"}
 ];
 const P = Object.fromEntries(PRODUCTS.map(p=>[p.sku,p]));
+/* Packing-list categories: pick the protocol first, then tap the sensor */
+const CATS = [
+  {id:"modbus", label:"Modbus",  skus:["cncr_modbus","ncr_modbus"]},
+  {id:"hart",   label:"HART",    skus:["cncr_hart","ncr_hart"]},
+  {id:"analog", label:"4-20 mA", skus:["cncr_420","ncr_420"]},
+  {id:"bintrac",label:"BinTrac", skus:["bintrac"]},
+  {id:"smartbob",label:"SmartBob",skus:["smartbob"]}
+];
+const PROTO_LABEL = {modbus:"Modbus",hart:"HART",analog:"4-20 mA"};
 const SENSOR_FAMILIES = ["cncr","ncr","bintrac","smartbob"];
 
 /* Wire purposes. "bank" = TC-100 terminal bank color from the system drawing */
 const PURPOSES = [
-  {id:"pwr",   label:"+24 VDC power",   bank:"var(--bank-pwr)", stroke:"#e53935"},
-  {id:"gnd",   label:"0 V / ground (−)",bank:"var(--bank-gnd)", stroke:"#222"},
-  {id:"rs_a",  label:"RS-485 (blue bank)",  bank:"var(--bank-a)", stroke:"#1e88f0"},
-  {id:"rs_b",  label:"RS-485 (white bank)", bank:"var(--bank-b)", stroke:"#9aa3ad"},
+  {id:"pwr",   label:"+24V power",   bank:"var(--bank-pwr)", stroke:"#e53935"},
+  {id:"gnd",   label:"0V ground",    bank:"var(--bank-gnd)", stroke:"#222"},
+  {id:"rs_a",  label:"485+",         bank:"var(--bank-a)", stroke:"#1e88f0"},
+  {id:"rs_b",  label:"485−",         bank:"var(--bank-b)", stroke:"#9aa3ad"},
   {id:"sig",   label:"4-20 mA / HART signal", bank:null, stroke:"#8e24aa"},
-  {id:"shld",  label:"Shield / drain",  bank:null, stroke:"#777"},
+  {id:"shld",  label:"Bare / shield",bank:null, stroke:"#777"},
   {id:"none",  label:"Not used",        bank:null, stroke:"#ccc"}
 ];
 const PUR = Object.fromEntries(PURPOSES.map(p=>[p.id,p]));
@@ -349,10 +377,10 @@ const SPLICE_SUGGEST = {pwr:"red", gnd:"black"};
 const NAMES = {cncr:"CNCR",ncr:"NCR",bintrac:"BinTrac",smartbob:"SmartBob"};
 /* Where each wire job lands. s = short label for diagrams */
 const LAND = {
-  tc:{pwr:["Orange bank (+24 V)","Orange +24 V"],gnd:["Gray bank (0 V)","Gray 0 V"],rs_a:["Blue bank (RS-485)","Blue RS-485"],
-      rs_b:["White bank (RS-485)","White RS-485"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]},
-  direct:{pwr:["PSDC +V","PSDC +V"],gnd:["PSDC −V","PSDC −V"],rs_a:["LTX RS-485 (blue wire)","LTX RS-485 blue"],
-      rs_b:["LTX RS-485 (white wire)","LTX RS-485 white"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]}
+  tc:{pwr:["Orange bank (+24V)","Orange +24V"],gnd:["Gray bank (0V)","Gray 0V"],rs_a:["Blue bank (485+)","Blue 485+"],
+      rs_b:["White bank (485−)","White 485−"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]},
+  direct:{pwr:["PSDC +V","PSDC +V"],gnd:["PSDC −V","PSDC −V"],rs_a:["LTX 485+","LTX 485+"],
+      rs_b:["LTX 485−","LTX 485−"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]}
 };
 
 /* =========================================================
@@ -363,13 +391,13 @@ const fresh = () => ({
   sid: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random()),
   started: new Date().toISOString(),
   job:{customer:"",site:"",address:"",installer:"",installerEmail:""},
-  added:[], bench:{start:null,end:null,seconds:null},
+  added:[], bench:{start:null,end:null,seconds:null}, cat:"modbus",
   qty:{}, comm:null, net:null,
   sensors:[], checks:{}, step:0, mode:"wizard"
 });
 let S = load();
 function load(){ try{ const o=Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY))||{});
-  o.job=Object.assign(fresh().job,o.job||{}); o.added=o.added||[]; o.bench=o.bench||{start:null,end:null,seconds:null}; return o; }catch(e){ return fresh(); } }
+  o.job=Object.assign(fresh().job,o.job||{}); o.added=(o.added||[]).filter(a=>a&&a.purpose!==undefined); o.bench=o.bench||{start:null,end:null,seconds:null}; return o; }catch(e){ return fresh(); } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
 const q = s => S.qty[s]||0;
@@ -414,11 +442,11 @@ function snapshotData(){
   return {
     step: STEPS[S.step]?.id, job: S.job,
     items: PRODUCTS.filter(p=>q(p.sku)).map(p=>({sku:p.sku, name:p.name+" "+p.variant, qty:q(p.sku)})),
-    comm: S.comm||commsUsed().join(","), net: S.net||netUsed().join(","), tc100: has("tc100"),
-    sensors: S.sensors.map((s,i)=>({product:P[s.sku].name+" "+P[s.sku].variant, vessel:s.vessel, yellow_sheet_saved:!!s.yellow,
+    comm: commsUsed().join(","), net: netUsed().join(","), tc100: has("tc100"),
+    sensors: S.sensors.map((s,i)=>({product:P[s.sku].name+" "+P[s.sku].variant, vessel:s.vessel, photo:!!s.photo, photo_path:s.photoPath||"",
       splice:!!s.splice, my_wire:s.cable||"", configured:!!s.configured,
       wires:s.wires.map(w=>({sensor_color:w.color, my_color:s.splice?(w.field||""):"", job:PUR[w.purpose]?.label||w.purpose}))})),
-    added_wires: S.added.filter(a=>a.run||a.cable||a.colors.length),
+    added_wires: S.added.map(a=>({color:a.color, job:PUR[a.purpose]?.label||a.purpose})),
     bench_seconds: S.bench.seconds, checks: S.checks, email: S.email||S.job.installerEmail||""
   };
 }
@@ -469,7 +497,7 @@ function icon(name){
 const STEPS = [
   {id:"start",   title:"Start",            render:rStart},
   {id:"order",   title:"What's in the order", render:rOrder},
-  {id:"comms",   title:"Communication",    render:rComms},
+  {id:"confirm", title:"Your order",       render:rConfirm},
   {id:"unbox",   title:"Unbox & name vessels", render:rUnbox},
   {id:"wires",   title:"Identify wires",   render:rWires},
   {id:"bench",   title:"Power & bench setup", render:rBench},
@@ -484,7 +512,9 @@ const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">
 function go(i){
   i=Math.max(0,Math.min(STEPS.length-1,i));
   if(i===S.step && W.innerHTML) return;
-  snap(); S.step=i; save(); render(); window.scrollTo({top:0}); track("step_view",{step:STEPS[i].id});
+  snap(); S.step=i;
+  if(i===STEPS.length-1) stopTimer();
+  save(); render(); window.scrollTo({top:0}); track("step_view",{step:STEPS[i].id});
 }
 function render(){
   document.body.classList.toggle("mode-scroll", S.mode==="scroll");
@@ -497,13 +527,14 @@ function render(){
   document.getElementById("hdrTitle").textContent = "Installer · "+st.title;
   document.getElementById("progBar").style.width = ((S.step)/(STEPS.length-1)*100)+"%";
   document.getElementById("progLbl").textContent = st.title;
-  document.getElementById("progNum").textContent = `Step ${S.step+1} of ${STEPS.length}`;
+  document.getElementById("progNum").innerHTML = `Step ${S.step+1} of ${STEPS.length}`+(S.bench.start?` · <span class="timerpill">⏱ <span data-clock>${fmtTime(benchElapsed())}</span></span>`:"");
   document.getElementById("backBtn").disabled = S.step===0;
   const nb=document.getElementById("nextBtn");
   nb.textContent = S.step===STEPS.length-1 ? "Print Quick Start Guide" : (S.step===0?"Start install":"Next");
   const blk = blocker(); nb.disabled = !!blk; nb.title = blk||"";
   document.getElementById("stepNav").innerHTML = STEPS.map((x,i)=>
-    `<button class="${i===S.step?'on':''} ${i<S.step?'done':''}" data-go="${i}"><span class="n">${i<S.step?'✓':i+1}</span>${x.title}</button>`).join("");
+    `<button class="${i===S.step?'on':''} ${i<S.step?'done':''}" data-go="${i}"><span class="n">${i<S.step?'✓':i+1}</span>${x.title}</button>`).join("")+
+    (S.bench.start?`<div class="muted" style="padding:10px 12px">⏱ <span data-clock>${fmtTime(benchElapsed())}</span></div>`:"");
   bind();
 }
 function blocker(){
@@ -513,65 +544,112 @@ function blocker(){
 }
 
 /* ---------- Step: start ---------- */
+const RKEY="bst_recent";
+function recent(){ try{ return JSON.parse(localStorage.getItem(RKEY))||{}; }catch(e){ return {}; } }
+function remember(){
+  const r=recent();
+  [["customer",S.job.customer],["site",S.job.site],["address",S.job.address]].forEach(([k,v])=>{
+    v=(v||"").trim(); if(!v) return; r[k]=[v,...(r[k]||[]).filter(x=>x!==v)].slice(0,15); });
+  try{ localStorage.setItem(RKEY,JSON.stringify(r)); }catch(e){}
+}
+const dl=(k)=>`<datalist id="dl_${k}">${(recent()[k]||[]).map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
+function timeStatCard(){
+  const t = benchStats && benchStats.installs>=5 ? benchStats : null;
+  return `<div class="card statcard"><div style="font-size:30px">⏱</div><div class="grow">
+    ${t?`<div class="muted">Typical install with this app</div><div class="big">${t.median_minutes} min</div>
+        <div class="muted" style="font-size:12px">median of ${t.installs} installs · fastest & slowest 10% left out</div>`
+       :`<div><b>This app keeps installs quick.</b></div><div class="muted">The timer starts on your first tap and stops at the last step.</div>`}
+    ${S.bench.start?`<div style="margin-top:6px">This install: <b data-clock>${fmtTime(benchElapsed())}</b></div>`:""}
+  </div></div>`;
+}
 function rStart(){
   return `
   <h2>Let's install it right the first time.</h2>
   <p class="sub">About 10 swipes. Your progress saves on this phone automatically.</p>
+  ${timeStatCard()}
   <div class="callout"><b>Before you start:</b> find the <b>packing list</b> in the clear envelope on the outside of one of the boxes. You'll use it on the next screen.</div>
-  <div class="card">
-    <h3>Job (optional)</h3>
-    <label class="f">Customer / company</label><input type="text" data-job="customer" value="${esc(S.job.customer)}" placeholder="e.g. Smith Grain Co.">
-    <label class="f">Site name</label><input type="text" data-job="site" value="${esc(S.job.site)}" placeholder="e.g. North elevator">
-    <label class="f">Site street address</label><input type="text" data-job="address" value="${esc(S.job.address)}" placeholder="Street, city, state, ZIP" autocomplete="street-address">
-    <label class="f">Installer name</label><input type="text" data-job="installer" value="${esc(S.job.installer)}" autocomplete="name">
-    <label class="f">Installer email</label><input type="text" inputmode="email" autocomplete="email" data-job="installerEmail" value="${esc(S.job.installerEmail)}" placeholder="you@company.com">
-  </div>
+  <form class="card" autocomplete="on" onsubmit="return false">
+    <h3>Job</h3>
+    <label class="f" for="f_customer">Customer / company</label>
+    <input id="f_customer" type="text" name="organization" autocomplete="organization" list="dl_customer" data-job="customer" value="${esc(S.job.customer)}" placeholder="e.g. Smith Grain Co.">${dl("customer")}
+    <label class="f" for="f_site">Site name</label>
+    <input id="f_site" type="text" name="site" list="dl_site" data-job="site" value="${esc(S.job.site)}" placeholder="e.g. North elevator">${dl("site")}
+    <label class="f" for="f_addr">Site street address</label>
+    <input id="f_addr" type="text" name="street-address" autocomplete="street-address" list="dl_address" data-job="address" value="${esc(S.job.address)}" placeholder="Street, city, state, ZIP">${dl("address")}
+    <div class="geo"><button type="button" class="btn ghost sm" id="geoBtn">📍 Use my location</button>
+      <span class="muted" id="geoStatus">${S.job.lat?`GPS saved: ${(+S.job.lat).toFixed(5)}, ${(+S.job.lon).toFixed(5)}`:""}</span></div>
+    <label class="f" for="f_name">Installer name</label>
+    <input id="f_name" type="text" name="name" autocomplete="name" data-job="installer" value="${esc(S.job.installer)}">
+    <label class="f" for="f_email">Installer email</label>
+    <input id="f_email" type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" data-job="installerEmail" value="${esc(S.job.installerEmail)}" placeholder="you@company.com">
+    <p class="muted" style="margin:8px 0 0">Your name and email are remembered for the next install.</p>
+  </form>
   ${S.sensors.length||Object.keys(S.qty).length?`<button class="btn ghost sm noprint" id="resetBtn">Start a new install (clear saved)</button>`:""}`;
+}
+function useLocation(){
+  const st=document.getElementById("geoStatus");
+  if(!navigator.geolocation){ st.textContent="Location isn't available on this device."; return; }
+  st.textContent="Finding you…";
+  navigator.geolocation.getCurrentPosition(async p=>{
+    const lat=p.coords.latitude, lon=p.coords.longitude; S.job.lat=lat; S.job.lon=lon; save();
+    let line="";
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${lat}&lon=${lon}`);
+      const j=await r.json(), a=j.address||{};
+      line=[[a.house_number,a.road].filter(Boolean).join(" "), a.city||a.town||a.village||a.hamlet||a.county, a.state, a.postcode].filter(Boolean).join(", ");
+    }catch(e){}
+    S.job.address = line || S.job.address || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    save(); track("geo",{ok:true}); render();
+  }, e=>{ st.textContent = e.code===1 ? "Location permission was denied." : "Couldn't get your location."; track("geo",{ok:false,code:e.code}); },
+  {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
 }
 
 /* ---------- Step: order (swipe 1) ---------- */
-function tilesFor(group){
-  return `<div class="tiles">`+PRODUCTS.filter(p=>p.group===group).map(p=>`
-    <div class="tile ${q(p.sku)?'on':''}" data-tile="${p.sku}" role="button" aria-pressed="${!!q(p.sku)}">
+function tileHTML(p, showVariant=true){
+  return `<div class="tile ${q(p.sku)?'on':''}" data-tile="${p.sku}" role="button" aria-pressed="${!!q(p.sku)}">
       <span class="badge">×${q(p.sku)}</span>
-      ${icon(p.icon)}<div class="nm">${p.name}</div><div class="vr">${p.variant}</div>
+      ${icon(p.icon)}<div class="nm">${p.name}</div>${showVariant?`<div class="vr">${p.variant}</div>`:""}
       <div class="qty"><button data-dec="${p.sku}" aria-label="less">−</button><b>${q(p.sku)}</b><button data-inc="${p.sku}" aria-label="more">+</button></div>
-    </div>`).join("")+`</div>`;
+    </div>`;
 }
+function tilesFor(group){
+  return `<div class="tiles">`+PRODUCTS.filter(p=>p.group===group).map(p=>tileHTML(p)).join("")+`</div>`;
+}
+const catCount = c => c.skus.reduce((n,k)=>n+q(k),0);
 function rOrder(){
+  const cat = CATS.find(c=>c.id===S.cat) || CATS[0];
   return `
   <h2>Tap what's on the packing list</h2>
-  <p class="sub">Tap an item to add it, then set the quantity.</p>
-  <div class="grouphdr">Level sensors</div>${tilesFor("sensors")}
+  <p class="sub">Pick the sensor type, then tap the sensor and set the quantity.</p>
+  <div class="grouphdr">Sensor type</div>
+  <div class="cats" role="tablist">${CATS.map(c=>`<button class="cat ${c.id===cat.id?'on':''}" data-cat="${c.id}" role="tab" aria-selected="${c.id===cat.id}">${c.label}${catCount(c)?`<span class="ct">${catCount(c)}</span>`:""}</button>`).join("")}</div>
+  <div class="tiles">${cat.skus.map(k=>tileHTML(P[k], false)).join("")}</div>
   <div class="grouphdr">Gateway & display</div>${tilesFor("gateway")}
   <div class="grouphdr">Power & accessories</div>${tilesFor("accessories")}`;
 }
 
-/* ---------- Step: comms (swipe 2) ---------- */
-function rComms(){
-  const cu=commsUsed(), nu=netUsed();
-  const comm = S.comm || (cu.length===1?cu[0]:null);
-  const net  = S.net  || (nu.length===1?nu[0]:null);
-  const items = PRODUCTS.filter(p=>q(p.sku)).map(p=>`<span class="chip acc">${q(p.sku)}× ${p.name} ${p.variant}</span>`).join("");
+/* ---------- Step: your order (confirm) ---------- */
+function rConfirm(){
+  const items=PRODUCTS.filter(p=>q(p.sku));
+  const cu=commsUsed(), nu=netUsed(), warn=[];
+  if(!S.sensors.length) warn.push("No sensors on the order.");
+  if(!has("ltx") && !has("c100")) warn.push("No LTX or C-100 display on the order.");
+  if(!has("psdc")) warn.push("No PSDC power supply — you'll need your own 24 VDC supply.");
+  if(nu.length>1) warn.push("Both LTX Cellular and LTX Ethernet are on the order.");
   return `
-  <h2>Confirm communication</h2>
-  <p class="sub">We picked these from your order. Change them if the packing list says otherwise.</p>
-  <div class="card"><h3>Your order</h3><div class="chips">${items||'<span class="muted">Nothing selected yet.</span>'}</div></div>
-  <div class="card"><h3>Sensor output</h3>
-    <div class="seg" data-seg="comm">
-      ${[["modbus","Modbus"],["hart","HART"],["analog","Analog 4-20"]].map(([v,l])=>`<button class="${comm===v?'on':''}" data-v="${v}">${l}</button>`).join("")}
-    </div>
-    ${cu.length>1?`<p class="muted">Mixed outputs on this order: ${cu.join(", ")}. Each sensor keeps its own type.</p>`:""}
-  </div>
-  <div class="card"><h3>LTX connection</h3>
-    <div class="seg" data-seg="net">
-      ${[["cellular","Cellular"],["ethernet","Ethernet"]].map(([v,l])=>`<button class="${net===v?'on':''}" data-v="${v}">${l}</button>`).join("")}
-    </div>
-    ${!has("ltx")?`<p class="muted">No LTX on this order.</p>`:""}
-  </div>
-  <div class="card"><h3>Junction</h3>
-    <p class="muted" style="margin:0">${has("tc100")?"TC-100 junction on order — wiring will go through the TC-100.":"No TC-100 on order — sensors wire directly to the LTX / display."}</p>
-  </div>`;
+  <h2>Your order</h2>
+  <p class="sub">Check this against the packing list.</p>
+  <div class="card"><table class="t"><thead><tr><th>Qty</th><th>Item</th></tr></thead><tbody>
+    ${items.map(p=>`<tr><td><b>${q(p.sku)}</b></td><td>${p.name} ${p.variant}</td></tr>`).join("")||'<tr><td colspan=2 class="muted">Nothing selected</td></tr>'}
+  </tbody></table></div>
+  <div class="card"><div class="chips">
+    ${cu.map(c=>`<span class="chip acc">${PROTO_LABEL[c]}</span>`).join("")}
+    ${has("bintrac")?`<span class="chip acc">BinTrac</span>`:""}${has("smartbob")?`<span class="chip acc">SmartBob</span>`:""}
+    ${nu.map(n=>`<span class="chip acc">LTX ${n==="cellular"?"Cellular":"Ethernet"}</span>`).join("")}
+    <span class="chip">${has("tc100")?"TC-100 junction":"No TC-100"}</span>
+  </div></div>
+  ${warn.map(w=>`<div class="callout warn">${w}</div>`).join("")}
+  <button class="btn ghost" style="width:100%" data-goto="1">Edit order</button>`;
 }
 
 /* ---------- Step: unbox ---------- */
@@ -580,35 +658,50 @@ function rUnbox(){
   if(!S.sensors.length) return noSensors();
   return `
   <h2>Open the boxes</h2>
-  <div class="callout"><b>Save the yellow sheets</b> packed with each sensor. They list the sensor's wire colors and settings — you'll need them on the next screen.</div>
-  <p class="sub">Name the vessel each sensor goes on. Use the name the customer uses.</p>
+  <div class="callout"><b>Yellow sheets:</b> snap a photo of each sensor's yellow sheet. It's saved with that sensor and its vessel name, and goes in your email recap.</div>
   ${S.sensors.map((s,i)=>`
   <div class="card">
-    <div class="sensorhead">${icon(P[s.sku].icon)}<div class="grow"><b>${sensorLabel(s,i)}</b></div></div>
-    <label class="f">Vessel name</label>
-    <input type="text" data-sensor="${s.id}" data-k="vessel" value="${esc(s.vessel)}" placeholder="e.g. South Grain Bin, Plastic Resin Silo 11">
-    <label class="check" style="border:0;padding-bottom:0"><input type="checkbox" data-sensor="${s.id}" data-k="yellow" ${s.yellow?"checked":""}><span>Yellow sheet saved</span></label>
-  </div>`).join("")}`;
+    <div class="sensorhead">${icon(P[s.sku].icon)}<div class="grow"><b>${sensorLabel(s,i)}</b></div>${s.photo?'<span class="pill ok">Photo ✓</span>':""}</div>
+    <label class="f" for="v_${s.id}">Vessel name</label>
+    <input id="v_${s.id}" type="text" list="dl_vessel" data-sensor="${s.id}" data-k="vessel" value="${esc(s.vessel)}" placeholder="e.g. South Grain Bin, Plastic Resin Silo 11">
+    ${s.photo?`<div class="photo"><img alt="Yellow sheet for ${esc(s.vessel||sensorLabel(s,i))}" data-photo="${s.id}">
+        <div class="cap">${esc(s.vessel||"Vessel not named")} · ${P[s.sku].name} ${P[s.sku].variant}</div></div>
+      <div class="photo acts"><label class="btn ghost sm" style="cursor:pointer">Retake<input type="file" accept="image/*" capture="environment" data-photoin="${s.id}" hidden></label>
+        <button class="btn ghost sm" data-photodel="${s.id}">Remove</button></div>`
+     :`<label class="photobtn">📷 Photo of yellow sheet<input type="file" accept="image/*" capture="environment" data-photoin="${s.id}" hidden></label>`}
+  </div>`).join("")}
+  <datalist id="dl_vessel">${(recent().vessel||[]).map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
 }
 function noSensors(){ return `<h2>No sensors selected</h2><div class="callout warn">Go back to the order screen and add the sensors from the packing list.</div>`; }
 
 /* ---------- Step: wires ---------- */
-const ADDED_RUNS = ["AC feed to PSDC","24 VDC: PSDC to TC-100","24 VDC: PSDC to LTX","RS-485: LTX to TC-100",
-  "Sensor extension (spliced)","Ethernet to LTX","Display (C-100) run","Other"];
+const ADDED_PURPOSES = ["pwr","gnd","rs_a","rs_b","shld"];
+const ADDED_SUGGEST = {pwr:"red",gnd:"black",rs_a:"white",rs_b:"green",shld:"bare"};
+const addedFor = p => (S.added.find(a=>a.purpose===p)||{}).color || null;
 function addedWiresCard(){
+  const purposes = commsUsed().some(c=>c!=="modbus") ? [...ADDED_PURPOSES.slice(0,4),"sig","shld"] : ADDED_PURPOSES;
   return `<div class="card"><h3>Wire you're adding</h3>
-    <p class="muted" style="margin:0 0 10px">Besides each sensor's built-in wires, what wire are you bringing to this install?</p>
-    ${S.added.map((a,i)=>`<div class="addw">
-      <select data-add="${i}" data-k="run" aria-label="run"><option value="">Which run?</option>${ADDED_RUNS.map(r=>`<option ${a.run===r?"selected":""}>${r}</option>`).join("")}</select>
-      <button class="x" data-deladd="${i}" aria-label="remove run">✕</button>
-      <select class="full" data-add="${i}" data-k="cable" aria-label="cable"><option value="">Cable type…</option>${CABLE_TYPES.map(c=>`<option ${a.cable===c?"selected":""}>${c}</option>`).join("")}</select>
-      <div class="full"><div class="muted" style="margin-bottom:6px">Wire colors in this cable${a.colors.length?": <b>"+a.colors.join(", ")+"</b>":""}</div>
-        <div class="cbtns">${Object.keys(COLORS).map(c=>`<button class="cbtn ${a.colors.includes(c)?"on":""}" style="background:${COLORS[c]}" data-addcolor="${i}" data-c="${c}" aria-label="${c}" title="${c}"></button>`).join("")}</div></div>
-      <input class="full" type="number" min="0" inputmode="numeric" data-add="${i}" data-k="ft" value="${esc(a.ft)}" placeholder="Approx. length (ft)">
+    <p class="muted" style="margin:0 0 10px">Besides each sensor's built-in wires, what wire are you adding? Give each color its job.</p>
+    ${S.added.length?`<div class="wh"><span>Your wire</span><span>Job</span></div>`:""}
+    ${S.added.map((a,i)=>`<div class="wire">
+      <span class="swatch" style="background:${COLORS[a.color]||'#fff'}"></span>
+      <select data-add="${i}" data-k="color" aria-label="wire color">${colorOpts(a.color)}</select>
+      <select data-add="${i}" data-k="purpose" aria-label="wire job">${purposes.map(p=>`<option value="${p}" ${a.purpose===p?"selected":""}>${PUR[p].label}</option>`).join("")}</select>
+      <button class="x" data-deladd="${i}" aria-label="remove">✕</button>
     </div>`).join("")}
-    <button class="btn ghost sm" id="addRun">+ Add a wire run</button>
-    ${!S.added.length?`<span class="muted" style="margin-left:8px">None added yet</span>`:""}
+    <button class="btn ghost sm" id="addRun">+ Add a wire</button>
+    ${!S.added.length?`<span class="muted" style="margin-left:8px">None — sensor cables reach</span>`:""}
   </div>`;
+}
+function addWire(){
+  const used=new Set(S.added.map(a=>a.purpose)), usedC=new Set(S.added.map(a=>a.color));
+  const p=ADDED_PURPOSES.find(x=>!used.has(x))||"pwr";
+  let c=ADDED_SUGGEST[p]; if(usedC.has(c)) c=Object.keys(COLORS).find(x=>!usedC.has(x))||c;
+  S.added.push({color:c,purpose:p});
+}
+/* Spliced sensors follow the installer's wire colors */
+function applyAddedToSplices(){
+  S.sensors.filter(s=>s.splice).forEach(s=>s.wires.forEach(w=>{ const c=addedFor(w.purpose); if(c) w.field=c; }));
 }
 const colorOpts = sel => Object.keys(COLORS).map(c=>`<option ${sel===c?"selected":""}>${c}</option>`).join("");
 function rWires(){
@@ -631,8 +724,6 @@ function rWires(){
       <button class="${!s.splice?'on':''}" data-v="0">Sensor cable reaches</button>
       <button class="${s.splice?'on':''}" data-v="1">Splicing my own wire</button>
     </div>
-    ${s.splice?`<label class="f">My wire</label><select data-sensor="${s.id}" data-k="cable"><option value="">Select type…</option>
-      ${CABLE_TYPES.map(c=>`<option ${s.cable===c?"selected":""}>${c}</option>`).join("")}</select>`:""}
     <div class="wires">
       <div class="wh"><span>Sensor wire</span><span>Job</span></div>
       ${s.wires.map((w,wi)=>`
@@ -657,6 +748,7 @@ function suggestSplice(s){
   const live=s.wires.filter(w=>w.purpose!=="none");
   const used=new Set(live.filter(w=>w.field).map(w=>w.field));
   const take=(w,c)=>{ w.field=c; used.add(c); };
+  live.filter(w=>!w.field && addedFor(w.purpose)).forEach(w=>take(w,addedFor(w.purpose)));
   live.filter(w=>!w.field && SPLICE_SUGGEST[w.purpose] && !used.has(SPLICE_SUGGEST[w.purpose])).forEach(w=>take(w,SPLICE_SUGGEST[w.purpose]));
   live.filter(w=>!w.field && !used.has(w.color)).forEach(w=>take(w,w.color));
   live.filter(w=>!w.field).forEach(w=>take(w,["green","yellow","orange","white","blue","purple","gray"].find(x=>!used.has(x))||w.color));
@@ -676,14 +768,14 @@ function connections(){
     wires:[{a:"Line (hot)",b:"L",color:"black"},{a:"Neutral",b:"N",color:"white"}],
     note:"Power OFF and locked out before wiring. Follow local electrical code."});
   if(tc) C.push({id:"ps_tc",title:"24 VDC to TC-100",from:ps,to:"TC-100",
-    wires:[{a:"+V",b:LAND.tc.pwr[0],bs:LAND.tc.pwr[1],color:"red"},{a:"−V",b:LAND.tc.gnd[0],bs:LAND.tc.gnd[1],color:"black"}]});
+    wires:[{a:"+V",b:LAND.tc.pwr[0],bs:LAND.tc.pwr[1],color:addedFor("pwr")||"red"},{a:"−V",b:LAND.tc.gnd[0],bs:LAND.tc.gnd[1],color:addedFor("gnd")||"black"}]});
   if(ltx) C.push({id:"ps_ltx",title:"24 VDC to LTX",from:ps,to:"LTX-100",tbd:true,
     wires:[{a:"+V",b:"24 VDC +",color:"red"},{a:"−V",b:"24 VDC −",color:"black"}],
     note:"The LTX can also run from a 24 VDC wall-wart supply."});
   if(ltx && tc) C.push({id:"ltx_tc",title:"RS-485 cable: LTX to TC-100",from:"LTX-100",to:"TC-100",tbd:true,
-    wires:[{a:"RS-485 (blue)",b:LAND.tc.rs_a[0],bs:LAND.tc.rs_a[1],color:"blue"},
-           {a:"RS-485 (white)",b:LAND.tc.rs_b[0],bs:LAND.tc.rs_b[1],color:"white"},
-           {a:"Shield",b:"Tie to sensor shields",bs:"Sensor shields",color:"bare"}]});
+    wires:[{a:"485+",b:LAND.tc.rs_a[0],bs:LAND.tc.rs_a[1],color:addedFor("rs_a")||"blue"},
+           {a:"485−",b:LAND.tc.rs_b[0],bs:LAND.tc.rs_b[1],color:addedFor("rs_b")||"white"},
+           {a:"Shield",b:"Tie to sensor shields",bs:"Sensor shields",color:addedFor("shld")||"bare"}]});
   if(has("c100")) C.push({id:"c100",title:"C-100 display",from:"C-100",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
     note:"Landing details coming. Wiring drawing for the C-100 still needed."});
   if(has("chiyu_bf430")) C.push({id:"chiyu",title:"Chiyu BF-430",from:"BF-430",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
@@ -744,45 +836,30 @@ function deviceLandings(){
   return [...D.entries()];
 }
 
-/* ---------- Bench timer + typical time (trimmed median from Supabase) ---------- */
+/* ---------- Install timer: starts on first tap, stops at the last step ---------- */
 const fmtTime = sec => { sec=Math.max(0,Math.round(sec)); const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), x=sec%60;
   return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0"); };
 function benchElapsed(){ const b=S.bench; if(!b.start) return 0; return ((b.end||Date.now())-b.start)/1000; }
-function benchTimerCard(){
-  const b=S.bench, running=b.start&&!b.end, done=!!b.end;
-  return `<div class="card"><h3>Bench timer</h3>
-    <div class="clock ${done?"done":""}" id="benchClock">${fmtTime(benchElapsed())}</div>
-    <div class="muted" id="benchStats" style="margin-bottom:10px">${benchStatsText()}</div>
-    ${!b.start?`<button class="btn primary" style="width:100%" data-bench="start">Start bench timer</button>
-       <p class="muted" style="margin:8px 0 0">Start when the parts are on the bench. Stop when every sensor is reading.</p>`:""}
-    ${running?`<button class="btn primary" style="width:100%" data-bench="stop">Bench test passed — stop timer</button>`:""}
-    ${done?`<p style="margin:0 0 8px"><b>✓ Bench time recorded.</b></p>`:""}
-    ${b.start?`<button class="btn ghost sm" data-bench="reset">Reset timer</button>`:""}
-  </div>`;
+function startTimer(){
+  if(S.mode!=="wizard" || S.bench.start) return;
+  S.bench={start:Date.now(),end:null,seconds:null}; save(); track("bench_start",{});
+  const pn=document.getElementById("progNum"); if(pn && !pn.querySelector("[data-clock]")) pn.insertAdjacentHTML("beforeend",` · <span class="timerpill">⏱ <span data-clock>0:00</span></span>`);
+}
+function stopTimer(){
+  const b=S.bench; if(!b.start || b.end) return;
+  b.end=Date.now(); b.seconds=Math.round((b.end-b.start)/1000);
+  track("bench_time",{seconds:b.seconds, sensors:S.sensors.length, items:S.qty, tc100:has("tc100"), spliced:S.sensors.some(s=>s.splice)});
 }
 let benchStats; // undefined = not loaded yet, null = unavailable
-function benchStatsText(){
-  if(!benchStats) return "Typical bench time appears here once installs are logged.";
-  if(!benchStats.installs || benchStats.installs<5) return `Typical bench time appears after 5 installs (${benchStats.installs||0} so far).`;
-  return `Typical bench setup: <b>${benchStats.median_minutes} min</b> (median of ${benchStats.installs} installs, fastest and slowest 10% removed)`+
-    (benchStats.median_minutes_per_sensor?` · about ${benchStats.median_minutes_per_sensor} min per sensor`:"");
-}
 async function loadBenchStats(){
   if(benchStats!==undefined || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) return;
   benchStats=null;
   try{ const r=await fetch(CONFIG.SUPABASE_URL+"/rest/v1/rpc/bench_stats",{method:"POST",headers:sbHeaders(),body:"{}"});
     if(r.ok){ const j=await r.json(); benchStats=(Array.isArray(j)?j[0]:j)||null; } }catch(e){}
-  const el=document.getElementById("benchStats"); if(el) el.innerHTML=benchStatsText();
+  if(benchStats && benchStats.installs>=5 && ["start","done"].includes(STEPS[S.step].id) && S.mode==="wizard") render();
 }
-function benchAction(a){
-  const b=S.bench;
-  if(a==="start"){ b.start=Date.now(); b.end=null; b.seconds=null; track("bench_start",{sensors:S.sensors.length}); }
-  if(a==="stop" && b.start && !b.end){ b.end=Date.now(); b.seconds=Math.round((b.end-b.start)/1000); S.checks.b_read=true;
-    track("bench_time",{seconds:b.seconds, sensors:S.sensors.length, items:S.qty, tc100:has("tc100"), spliced:S.sensors.some(s=>s.splice)}); }
-  if(a==="reset"){ if(!confirm("Reset the bench timer?")) return; S.bench={start:null,end:null,seconds:null}; track("bench_reset"); }
-  save(); render();
-}
-setInterval(()=>{ const el=document.getElementById("benchClock"); if(el && S.bench.start && !S.bench.end) el.textContent=fmtTime(benchElapsed()); },1000);
+setInterval(()=>{ if(!S.bench.start || S.bench.end) return; const t=fmtTime(benchElapsed());
+  document.querySelectorAll("[data-clock]").forEach(el=>el.textContent=t); },1000);
 
 /* ---------- Step: power & bench setup ---------- */
 function rBench(){
@@ -792,7 +869,6 @@ function rBench(){
   return `
   <h2>Power & bench setup</h2>
   <div class="callout"><b>Bench it first.</b> Lay every part out on a bench, wire it with short leads, and get every sensor reading <b>before</b> anything goes up on the bin.</div>
-  ${benchTimerCard()}
   <div class="card"><h3>Safety</h3>
     ${chk("pw_off","AC power is OFF and locked out while you wire.")}
   </div>
@@ -814,7 +890,6 @@ function rBench(){
     ${chk("b_power","Power on: 24 VDC present at the sensors.")}
     ${has("ltx")?chk("b_ltx","LTX powers up."):""}
     ${chk("b_read","Every sensor shows a reading on the Bluetooth app or BinDisc.")}
-    ${S.bench.start&&!S.bench.end?`<button class="btn primary" style="width:100%;margin:8px 0" data-bench="stop">Bench test passed — stop timer</button>`:""}
     ${chk("b_off","Power off before moving parts to the bin.")}
   </div>`;
 }
@@ -877,7 +952,7 @@ function wireDiagramSVG(){
   const shown=sens.slice(0,6), more=sens.length-shown.length;
   const Wd=960, H=560;
   const col={pwr:"#e53935",gnd:"#222",a:"#1e88f0",b:"#b8c0c8",sh:"#888"};
-  const net = S.net || netUsed()[0];
+  const net = netUsed()[0];
   let g=`<svg viewBox="0 0 ${Wd} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial" font-size="13">
   <rect width="${Wd}" height="${H}" fill="#fff"/>
   <text x="16" y="26" font-weight="800" font-size="16">System wiring — ${esc(S.job.site||S.job.customer||"this job")}</text>
@@ -985,10 +1060,12 @@ function rDone(){
   return `
   <h2>You're set.</h2>
   <p class="sub">Your Quick Start Guide is built from this install.</p>
+  ${S.bench.seconds?`<div class="card statcard"><div style="font-size:30px">⏱</div><div class="grow"><div class="muted">You finished in</div><div class="big">${fmtTime(S.bench.seconds)}</div>
+    ${benchStats&&benchStats.installs>=5?`<div class="muted" style="font-size:12px">Typical: ${benchStats.median_minutes} min</div>`:""}</div></div>`:""}
   <div class="card"><div class="chips">
     <span class="chip">${S.sensors.length} sensors</span><span class="chip">${vessels} vessels named</span>
     <span class="chip">${conf} configured on bench</span></div></div>
-  <button class="btn primary" style="width:100%;margin-bottom:10px" id="mailBtn2">✉ Email me the one-page guide</button>
+  <button class="btn primary" style="width:100%;margin-bottom:10px" id="mailBtn2">✉ Email me the guide + recap</button>
   <button class="btn ghost" style="width:100%;margin-bottom:10px" id="printBtn2">Print / save as PDF</button>
   <button class="btn ghost" style="width:100%;margin-bottom:10px" id="scrollBtn">Read as one scrolling guide</button>
   <button class="btn ghost" style="width:100%" id="nextInstall">+ Start next install</button>`;
@@ -1005,12 +1082,13 @@ function renderGuide(){
     <div class="muted">${[S.job.customer,S.job.site,S.job.address,S.job.installer,S.job.installerEmail].filter(Boolean).map(esc).join(" · ")} · ${new Date().toLocaleDateString()}</div></div></div>
   <div class="row noprint" style="margin-bottom:12px;flex-wrap:wrap"><button class="btn primary" id="printBtn">Print / save as PDF</button><button class="btn ghost" id="backWiz">Step-by-step</button></div>
   ${sec(1,"Order contents",`<table class="t"><thead><tr><th>Qty</th><th>Item</th></tr></thead><tbody>${items||'<tr><td colspan=2 class="muted">Nothing selected</td></tr>'}</tbody></table>
-     <p class="muted">Output: <b>${S.comm||commsUsed().join(", ")||"—"}</b> · LTX: <b>${S.net||netUsed().join(", ")||"—"}</b> · Junction: <b>${has("tc100")?"TC-100":"none"}</b></p>`)}
-  ${sec(2,"Unbox",`<p>Save the <b>yellow sheets</b> packed with each sensor.</p>
-     <table class="t"><thead><tr><th>Sensor</th><th>Vessel</th></tr></thead><tbody>${S.sensors.map((s,i)=>`<tr><td>${sensorLabel(s,i)}</td><td>${esc(s.vessel)||"________________"}</td></tr>`).join("")}</tbody></table>`)}
-  ${sec(3,"Wire colors",wiringTable()+(S.added.length?`<h4 style="margin:14px 0 6px">Wire added by installer</h4><table class="t"><thead><tr><th>Run</th><th>Cable</th><th>Colors</th><th>Length</th></tr></thead><tbody>
-     ${S.added.map(a=>`<tr><td>${esc(a.run)||"—"}</td><td>${esc(a.cable)||"—"}</td><td>${a.colors.map(c=>sw(c)+" "+esc(c)).join("<br>")||"—"}</td><td>${a.ft?esc(a.ft)+" ft":""}</td></tr>`).join("")}</tbody></table>`:""))}
-  ${sec(4,"Bench setup",`${S.bench.seconds?`<p><b>Bench test time: ${fmtTime(S.bench.seconds)}</b></p>`:""}<p>Wire everything on a bench with short leads and get every sensor reading before installing on the bin. AC power off while wiring.</p>
+     <p class="muted">Output: <b>${commsUsed().map(c=>PROTO_LABEL[c]).join(", ")||"—"}</b> · LTX: <b>${netUsed().join(", ")||"—"}</b> · Junction: <b>${has("tc100")?"TC-100":"none"}</b></p>`)}
+  ${sec(2,"Unbox",`<p>Photograph each sensor's <b>yellow sheet</b>.</p>
+     <table class="t"><thead><tr><th>Sensor</th><th>Vessel</th><th>Yellow sheet</th></tr></thead><tbody>${S.sensors.map((s,i)=>`<tr><td>${sensorLabel(s,i)}</td><td>${esc(s.vessel)||"________________"}</td>
+       <td>${s.photo?`<img data-photo="${s.id}" alt="" style="width:120px;border-radius:6px">`:"—"}</td></tr>`).join("")}</tbody></table>`)}
+  ${sec(3,"Wire colors",wiringTable()+(S.added.length?`<h4 style="margin:14px 0 6px">Wire added by installer</h4><table class="t"><tbody>
+     ${S.added.map(a=>`<tr><td>${sw(a.color)} ${esc(a.color)}</td><td>${esc(PUR[a.purpose]?.label||"")}</td></tr>`).join("")}</tbody></table>`:""))}
+  ${sec(4,"Bench setup",`${S.bench.seconds?`<p><b>Install time with this app: ${fmtTime(S.bench.seconds)}</b></p>`:""}<p>Wire everything on a bench with short leads and get every sensor reading before installing on the bin. AC power off while wiring.</p>
      ${SENSOR_FAMILIES.filter(has).map(f=>CONFIG.SETUP_LINKS[f]?`<p><b>${NAMES[f]} setup:</b> <a href="${CONFIG.SETUP_LINKS[f]}">${CONFIG.SETUP_LINKS[f]}</a></p>`:`<p><b>${NAMES[f]}:</b> setup guide coming soon</p>`).join("")}`)}
   ${sec(5,"Sensor placement",`<div class="diagram">${placementSVG()}</div><p>Mount <b>1/3 to 1/2</b> of the way from the sidewall to the center, away from fill streams, inside ladders and structures.</p>`)}
   ${sec(6,"System overview",`<div class="diagram">${wireDiagramSVG()}</div>${LEGEND}`)}
@@ -1018,6 +1096,7 @@ function renderGuide(){
   ${C.map((c,i)=>connCard(c,"6."+(i+1))).join("")}
   <p class="muted" style="text-align:center">Generated by BST Installer · Version ${CONFIG.APP_VERSION}</p>`;
   document.getElementById("hdrTitle").textContent="Quick Start Guide";
+  fillPhotos(G);
   G.querySelector("#printBtn").onclick=doPrint;
   G.querySelector("#backWiz").onclick=()=>{S.mode="wizard";save();render();};
 }
@@ -1039,63 +1118,146 @@ function closeSetup(){
   document.body.style.overflow="";
 }
 
-/* ---------- One-page guide (email) ---------- */
+/* ---------- Photos: stored on the phone (IndexedDB), uploaded best-effort to Supabase Storage ---------- */
+const PHOTO_BUCKET="yellow-sheets";
+const PDB={ db:null,
+  open(){ return this.db || (this.db=new Promise((res,rej)=>{ const r=indexedDB.open("bst_photos",1);
+    r.onupgradeneeded=()=>r.result.createObjectStore("p"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); })); },
+  async tx(mode,fn){ const d=await this.open(); return new Promise((res,rej)=>{ const t=d.transaction("p",mode), st=t.objectStore("p"); const r=fn(st);
+    t.oncomplete=()=>res(r&&r.result); t.onerror=()=>rej(t.error); }); },
+  put(k,v){ return this.tx("readwrite",st=>st.put(v,k)); },
+  get(k){ return this.tx("readonly",st=>st.get(k)); },
+  del(k){ return this.tx("readwrite",st=>st.delete(k)); },
+  clear(){ return this.tx("readwrite",st=>st.clear()); }
+};
+async function shrink(file, max=1400){
+  const url=URL.createObjectURL(file); const img=new Image(); img.src=url;
+  try{ await img.decode(); }catch(e){ URL.revokeObjectURL(url); return file; }
+  const sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+  const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+  return await new Promise(r=>c.toBlob(b=>r(b||file),"image/jpeg",0.72));
+}
+async function savePhoto(id, file){
+  const s=S.sensors.find(x=>x.id===id); if(!s||!file) return;
+  const blob=await shrink(file); await PDB.put(id, blob); s.photo=true; s.photoPath=""; save(); render();
+  track("photo",{sku:s.sku});
+  if(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY){
+    const path=`${S.sid}/${id}-${Date.now()}.jpg`;
+    try{ const h=sbHeaders(); h["Content-Type"]="image/jpeg";
+      const r=await fetch(`${CONFIG.SUPABASE_URL}/storage/v1/object/${PHOTO_BUCKET}/${path}`,{method:"POST",headers:h,body:blob});
+      if(r.ok){ s.photoPath=path; save(); track("photo_upload",{ok:true}); } else track("photo_upload",{ok:false,status:r.status});
+    }catch(e){ track("photo_upload",{ok:false}); }
+  }
+}
+async function fillPhotos(root){
+  for(const img of root.querySelectorAll("img[data-photo]")){
+    try{ const b=await PDB.get(img.dataset.photo); if(b) img.src=URL.createObjectURL(b); }catch(e){}
+  }
+}
+/* Photo with a caption band: vessel · sensor · date */
+async function stampedPhoto(s){
+  const b=await PDB.get(s.id).catch(()=>null); if(!b) return null;
+  const url=URL.createObjectURL(b), img=new Image(); img.src=url; await img.decode(); URL.revokeObjectURL(url);
+  const w=img.naturalWidth, h=img.naturalHeight, band=Math.max(40,Math.round(w*0.06));
+  const c=document.createElement("canvas"); c.width=w; c.height=h+band; const x=c.getContext("2d");
+  x.drawImage(img,0,0); x.fillStyle="#14202e"; x.fillRect(0,h,w,band);
+  x.fillStyle="#fff"; x.font=`bold ${Math.round(band*0.45)}px system-ui,Arial`; x.textBaseline="middle";
+  x.fillText(`${s.vessel||"Vessel not named"} · ${P[s.sku].name} ${P[s.sku].variant} · ${new Date().toLocaleDateString()}`, band*0.3, h+band/2);
+  return await new Promise(r=>c.toBlob(r,"image/jpeg",0.8));
+}
+const photoName = (s,i) => `${(s.vessel||"Sensor "+(i+1)).replace(/[^\w\- ]+/g,"").trim()} - ${P[s.sku].name} ${P[s.sku].variant} - yellow sheet.jpg`;
+const blobToB64 = b => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(String(fr.result).split(",")[1]); fr.readAsDataURL(b); });
+
+/* ---------- Guide + recap (email / share) ---------- */
 function guideData(){
-  const sections=[];
+  const sections=[], j=S.job;
+  sections.push({h:"Job",rows:[["Customer",j.customer||"—"],["Site",j.site||"—"],["Address",j.address||"—"],
+    ...(j.lat?[["GPS",`${(+j.lat).toFixed(5)}, ${(+j.lon).toFixed(5)}`]]:[]),
+    ["Installer",j.installer||"—"],["Installer email",j.installerEmail||"—"],["Date",new Date().toLocaleString()],
+    ...(S.bench.seconds?[["Install time",fmtTime(S.bench.seconds)]]:[])]});
+  sections.push({h:"Quick install steps",rows:[
+    ["1","Bench first: wire every part with short leads and get every sensor reading on the Bluetooth app or BinDisc."],
+    ["2","Configure each sensor with its setup tool (links below)."],
+    ["3","Mount 1/3 to 1/2 of the way from sidewall to center, away from fill streams, ladders and structures."],
+    ["4","Run wire and land it on the matching terminals (wire runs below)."],
+    ["5","Power up and confirm every sensor reads again."]]});
   sections.push({h:"Order",rows:PRODUCTS.filter(p=>q(p.sku)).map(p=>[q(p.sku)+"×",p.name+" "+p.variant])});
-  const addedRows=S.added.filter(a=>a.run||a.cable).map(a=>[a.run||"—",a.cable||"—",a.colors.join(", ")||"—",a.ft?a.ft+" ft":""]);
-  if(addedRows.length) sections.push({h:"Wire added by installer",rows:addedRows});
-  if(S.sensors.length) sections.push({h:"Sensors & vessels",rows:S.sensors.map((s,i)=>[sensorLabel(s,i),s.vessel||"—",s.splice?"spliced to my wire":"sensor cable"])});
-  connections().forEach((c,i)=>sections.push({h:`${i+1}. ${c.title}`,
+  if(S.sensors.length) sections.push({h:"Sensors & vessels",rows:S.sensors.map((s,i)=>[sensorLabel(s,i),s.vessel||"—",s.photo?"yellow sheet photo attached":"no photo"])});
+  if(S.added.length) sections.push({h:"Wire added by installer",rows:S.added.map(a=>[a.color,PUR[a.purpose]?.label||""])});
+  connections().forEach((c,i)=>sections.push({h:`Run ${i+1}: ${c.title}`,
     rows:c.wires.map(w=>[w.a, w.field&&w.field!==w.color?`${w.color} → splice → ${w.field}`:w.color, w.b]), note:c.note||""}));
   const fams=SENSOR_FAMILIES.filter(has);
   if(fams.length) sections.push({h:"Sensor setup",rows:fams.map(f=>[NAMES[f],CONFIG.SETUP_LINKS[f]||"coming soon"])});
-  sections.push({h:"Placement",rows:[["Mount 1/3 to 1/2 of the way from sidewall to center, away from fill streams, ladders and structures."]]});
-  sections.push({h:"Bench first",rows:[["Wire and test every part on a bench before installing on the bin."]]});
-  if(S.bench.seconds) sections.push({h:"Bench test time",rows:[[fmtTime(S.bench.seconds)]]});
-  return {title:"BST Quick Start Guide", subtitle:[S.job.customer,S.job.site,S.job.address,S.job.installer,new Date().toLocaleDateString()].filter(Boolean).join(" · "),
+  return {title:`BST Quick Install Guide${j.site?" – "+j.site:j.customer?" – "+j.customer:""}`,
+          subtitle:[j.customer,j.site,j.address,new Date().toLocaleDateString()].filter(Boolean).join(" · "),
           appUrl:location.href.split("#")[0], sections};
 }
 function guideText(g){
   return `${g.title}\n${g.subtitle}\n\n`+g.sections.map(s=>s.h.toUpperCase()+"\n"+s.rows.map(r=>"  "+r.join("  |  ")).join("\n")+(s.note?"\n  Note: "+s.note:"")).join("\n\n");
 }
-function svgToPng(svg){
+function svgToPng(svg, asBlob=false){
   return new Promise((res,rej)=>{
     const m=svg.match(/viewBox="0 0 (\d+) (\d+)"/), w=+m[1], h=+m[2], sc=2;
     const img=new Image();
     img.onload=()=>{ const c=document.createElement("canvas"); c.width=w*sc; c.height=h*sc; const x=c.getContext("2d");
-      x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/png").split(",")[1]); };
+      x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height);
+      if(asBlob) c.toBlob(res,"image/png"); else res(c.toDataURL("image/png").split(",")[1]); };
     img.onerror=rej;
     img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg.replace("<svg ",`<svg width="${w}" height="${h}" `));
   });
 }
+/* Build attachments ahead of time so the share sheet opens instantly on tap */
+let prepared=null;
+async function prepareFiles(){
+  const files=[];
+  try{ const png=await svgToPng(wireDiagramSVG(),true); if(png) files.push(new File([png],"system-wiring.png",{type:"image/png"})); }catch(e){}
+  for(const [i,s] of S.sensors.entries()){ if(!s.photo) continue;
+    try{ const b=await stampedPhoto(s); if(b) files.push(new File([b],photoName(s,i),{type:"image/jpeg"})); }catch(e){} }
+  return files;
+}
 const mailStatus=t=>document.getElementById("mailStatus").textContent=t;
-function openMail(){ document.getElementById("mailTo").value=S.email||S.job.installerEmail||""; mailStatus(""); document.getElementById("mail").classList.remove("hidden"); }
+function openMail(){
+  snap();
+  const serverMail = CONFIG.EMAIL_ENABLED && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
+  document.getElementById("mailTo").value=S.email||S.job.installerEmail||"";
+  document.getElementById("mailTo").classList.toggle("hidden", !serverMail);
+  const n=S.sensors.filter(s=>s.photo).length;
+  document.getElementById("mailInfo").textContent = `Quick install guide + recap of this install`+(n?`, with ${n} yellow-sheet photo${n>1?"s":""}`:"")+" and the wiring diagram.";
+  document.getElementById("mailSend").textContent = serverMail ? "Send" : "Open in Mail";
+  mailStatus(serverMail?"":"Preparing…");
+  document.getElementById("mailSend").disabled = !serverMail;
+  document.getElementById("mail").classList.remove("hidden");
+  prepared = prepareFiles().then(f=>{ prepared=f; if(!serverMail){ mailStatus(""); document.getElementById("mailSend").disabled=false; } return f; });
+}
 function closeMail(){ document.getElementById("mail").classList.add("hidden"); }
 async function sendGuide(){
-  const to=document.getElementById("mailTo").value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ mailStatus("Enter a valid email address."); return; }
-  S.email=to; save(); snap();
-  const g=guideData();
-  if(CONFIG.EMAIL_ENABLED && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && navigator.onLine){
-    mailStatus("Sending…");
+  const g=guideData(), serverMail = CONFIG.EMAIL_ENABLED && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY;
+  if(serverMail){
+    const to=document.getElementById("mailTo").value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ mailStatus("Enter a valid email address."); return; }
+    S.email=to; save(); mailStatus("Sending…");
     try{
-      let png=null; try{ png=await svgToPng(wireDiagramSVG()); }catch(e){}
-      const r=await fetch(CONFIG.SUPABASE_URL+"/functions/v1/send-guide",{method:"POST",
-        headers:sbHeaders(),
-        body:JSON.stringify({to,guide:g,png,session_id:S.sid})});
-      if(r.ok){ mailStatus("Sent ✓ Check your inbox."); track("email_guide",{via:"function"}); return; }
+      const files = Array.isArray(prepared) ? prepared : await prepared;
+      const png = files.find(f=>f.type==="image/png");
+      const photos=[]; for(const f of files.filter(f=>f.type==="image/jpeg").slice(0,12)) photos.push({name:f.name, b64:await blobToB64(f)});
+      const r=await fetch(CONFIG.SUPABASE_URL+"/functions/v1/send-guide",{method:"POST",headers:sbHeaders(),
+        body:JSON.stringify({to,guide:g,png:png?await blobToB64(png):null,photos,session_id:S.sid})});
+      if(r.ok){ mailStatus("Sent ✓ Check your inbox."); track("email_guide",{via:"function",photos:photos.length}); return; }
     }catch(e){}
-    mailStatus("Couldn't send from the app. Opening your mail app…");
+    mailStatus("Couldn't send from the app — trying your mail app…");
+  }
+  const text=guideText(g)+"\n\nFull guide: "+g.appUrl;
+  const files=Array.isArray(prepared)?prepared:[];
+  if(navigator.share && navigator.canShare && files.length && navigator.canShare({files})){
+    try{ await navigator.share({title:g.title, text, files}); track("email_guide",{via:"share",files:files.length}); closeMail(); return; }
+    catch(e){ if(e.name==="AbortError") return; }
   }
   track("email_guide",{via:"mailto"});
-  const body=guideText(g).slice(0,1800)+"\n\nFull guide: "+g.appUrl;
-  location.href=`mailto:${to}?subject=${encodeURIComponent(g.title+(S.job.site?" – "+S.job.site:""))}&body=${encodeURIComponent(body)}`;
+  const to=S.job.installerEmail||S.email||"";
+  location.href=`mailto:${to}?subject=${encodeURIComponent(g.title)}&body=${encodeURIComponent(text.slice(0,1800))}`;
 }
 
-/* =========================================================
-   EVENT BINDING
-   ========================================================= */
 function bind(){
   W.querySelectorAll("[data-job]").forEach(el=>el.oninput=()=>{S.job[el.dataset.job]=el.value;save();});
   W.querySelectorAll("[data-tile]").forEach(el=>el.onclick=e=>{
@@ -1104,8 +1266,6 @@ function bind(){
   });
   W.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>setQty(b.dataset.inc,q(b.dataset.inc)+1));
   W.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>setQty(b.dataset.dec,q(b.dataset.dec)-1));
-  W.querySelectorAll("[data-seg]").forEach(sg=>sg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    S[sg.dataset.seg]=b.dataset.v; save(); track("comm_set",{[sg.dataset.seg]:b.dataset.v}); render();}));
   const findS=id=>S.sensors.find(s=>s.id===id);
   W.querySelectorAll("[data-sensor]").forEach(el=>{
     const ev = el.type==="text"?"input":"change";
@@ -1122,14 +1282,16 @@ function bind(){
   W.querySelectorAll("[data-copyall]").forEach(b=>b.onclick=()=>{const src=findS(b.dataset.copyall);
     S.sensors.filter(x=>x.sku===src.sku&&x!==src).forEach(x=>{x.wires=JSON.parse(JSON.stringify(src.wires)); x.splice=src.splice; x.cable=src.cable;});
     save(); render(); });
-  W.querySelectorAll("[data-bench]").forEach(b=>b.onclick=()=>benchAction(b.dataset.bench));
-  W.querySelectorAll("[data-add]").forEach(el=>{ const ev=el.tagName==="SELECT"?"change":"input";
-    el.addEventListener(ev,()=>{ S.added[+el.dataset.add][el.dataset.k]=el.value; save(); if(ev==="change") render(); }); });
-  W.querySelectorAll("[data-addcolor]").forEach(b=>b.onclick=()=>{ const a=S.added[+b.dataset.addcolor], c=b.dataset.c;
-    a.colors = a.colors.includes(c) ? a.colors.filter(x=>x!==c) : [...a.colors,c]; save(); render(); });
+  W.querySelectorAll("[data-add]").forEach(el=>el.onchange=()=>{ S.added[+el.dataset.add][el.dataset.k]=el.value; applyAddedToSplices(); save(); render(); });
   W.querySelectorAll("[data-deladd]").forEach(b=>b.onclick=()=>{ S.added.splice(+b.dataset.deladd,1); save(); render(); });
-  const ar=W.querySelector("#addRun"); if(ar) ar.onclick=()=>{ S.added.push({run:"",cable:"",colors:[],ft:""}); save(); render(); };
-  if(STEPS[S.step].id==="bench") loadBenchStats();
+  const ar=W.querySelector("#addRun"); if(ar) ar.onclick=()=>{ addWire(); applyAddedToSplices(); save(); render(); };
+  W.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S.cat=b.dataset.cat; save(); render(); });
+  W.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>go(+b.dataset.goto));
+  W.querySelectorAll("[data-photoin]").forEach(el=>el.onchange=()=>{ if(el.files&&el.files[0]) savePhoto(el.dataset.photoin, el.files[0]); });
+  W.querySelectorAll("[data-photodel]").forEach(b=>b.onclick=async()=>{ const s=findS(b.dataset.photodel); await PDB.del(s.id).catch(()=>{}); s.photo=false; s.photoPath=""; save(); render(); });
+  fillPhotos(W);
+  const gb=W.querySelector("#geoBtn"); if(gb) gb.onclick=useLocation;
+  if(["start","done"].includes(STEPS[S.step].id)) loadBenchStats();
   W.querySelectorAll("[data-opensetup]").forEach(b=>b.onclick=()=>openSetup(b.dataset.opensetup));
   const mb=W.querySelector("#mailBtn2"); if(mb) mb.onclick=openMail;
   W.querySelectorAll("[data-check]").forEach(el=>el.onchange=()=>{S.checks[el.dataset.check]=el.checked; save(); track("check",{k:el.dataset.check,v:el.checked});});
@@ -1150,7 +1312,7 @@ function setQty(k,v){
 
 document.getElementById("backBtn").onclick=()=>go(S.step-1);
 document.getElementById("nextBtn").onclick=()=>{
-  if(S.step===STEPS.length-1){ snap(); track("complete",{qty:S.qty,comm:S.comm,net:S.net,sensors:S.sensors.length}); doPrint(); }
+  if(S.step===STEPS.length-1){ snap(); remember(); rememberVessels(); track("complete",{qty:S.qty,sensors:S.sensors.length,seconds:S.bench.seconds}); doPrint(); }
   else go(S.step+1);
 };
 document.getElementById("modeBtn").onclick=()=>{ S.mode=S.mode==="scroll"?"wizard":"scroll"; save(); track("mode",{mode:S.mode}); render(); window.scrollTo({top:0}); };
@@ -1165,6 +1327,9 @@ document.getElementById("modeBtn").onclick=()=>{ S.mode=S.mode==="scroll"?"wizar
     x0=null; },{passive:true});
 })();
 
+/* timer: first tap or typing inside the app starts it */
+["pointerdown","input"].forEach(ev=>{ W.addEventListener(ev,startTimer,{passive:true}); document.getElementById("bottombar").addEventListener(ev,startTimer,{passive:true}); });
+
 document.getElementById("fab").onclick=openMail;
 document.getElementById("mailCancel").onclick=closeMail;
 document.getElementById("mailSend").onclick=sendGuide;
@@ -1174,6 +1339,8 @@ document.getElementById("sheetClose").onclick=closeSetup;
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") snap(); });
 
 /* ---------- New install / resume ---------- */
+function rememberVessels(){ const r=recent(); S.sensors.forEach(s=>{ const v=(s.vessel||"").trim(); if(v) r.vessel=[v,...(r.vessel||[]).filter(x=>x!==v)].slice(0,30); });
+  try{ localStorage.setItem(RKEY,JSON.stringify(r)); }catch(e){} }
 function inProgress(){ return S.step>0 || Object.keys(S.qty).length>0 || S.job.customer || S.job.site; }
 function jobName(){ return [S.job.customer,S.job.site].filter(Boolean).join(" · ") || "Unnamed install"; }
 function askNew(onOpen){
@@ -1188,6 +1355,7 @@ function askNew(onOpen){
 function newInstall(){
   document.getElementById("newModal").classList.add("hidden");
   if(inProgress()){ snap(); track("new_install",{from_step:STEPS[S.step]?.id}); }
+  remember(); rememberVessels(); PDB.clear().catch(()=>{});
   const keep={installer:S.job.installer, installerEmail:S.job.installerEmail}, email=S.email;
   S=fresh(); Object.assign(S.job,keep); S.email=email; save();
   render(); window.scrollTo({top:0}); track("app_open",{new_install:true});
