@@ -1,4 +1,4 @@
-<!-- Version 6 — BST Installer App -->
+<!-- Version 7 — BST Installer App -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -186,6 +186,18 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
 .clock{font:800 44px/1.1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px;margin:6px 0 10px}
 .clock.done{color:var(--ok)}
 
+/* sensor row + protocol row */
+.tiles.t4{grid-template-columns:repeat(4,1fr)}
+.tiles.t4 .tile{min-height:96px;padding:8px 4px}
+.tile.pick{box-shadow:0 0 0 3px var(--ink) inset;border-color:var(--ink)}
+.protos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.proto{background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center}
+.proto.on{border-color:var(--accent);background:#fff7ec}
+.proto .pl{font-weight:800;font-size:14px;margin-bottom:6px}
+.proto .qty{display:flex;justify-content:center;align-items:center;gap:4px}
+.proto .qty button{width:30px;height:32px;padding:0;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:800;font-size:18px}
+.proto .qty b{min-width:20px;font-size:18px}
+.protos.one{grid-template-columns:1fr}
 /* protocol category chips */
 .cats{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px 8px;scrollbar-width:none}
 .cats::-webkit-scrollbar{display:none}
@@ -314,7 +326,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "6"
+  APP_VERSION: "7"
 };
 
 /* =========================================================
@@ -336,18 +348,18 @@ const PRODUCTS = [
   {sku:"tc100",       name:"TC-100", variant:"Junction", family:"tc100", group:"accessories", icon:"terminal"},
   {sku:"psdc",        name:"PSDC", variant:"24–30 VDC", family:"psdc", group:"accessories", icon:"psu"},
   {sku:"chiyu_bf430", name:"Chiyu BF-430", variant:"Serial↔IP", family:"chiyu", group:"accessories", icon:"chiyu"},
-  {sku:"rs485_usb",   name:"485→USB", variant:"Adapter", family:"usb", group:"accessories", icon:"usb"}
+  {sku:"rs485_usb",   name:"485→USB", variant:"Adapter", family:"usb", group:"accessories", icon:"usb"},
+  {sku:"c50",         name:"C50", variant:"", family:"c50", group:"accessories", icon:"c50"}
 ];
 const P = Object.fromEntries(PRODUCTS.map(p=>[p.sku,p]));
-/* Packing-list categories: pick the protocol first, then tap the sensor */
-const CATS = [
-  {id:"modbus", label:"Modbus",  skus:["cncr_modbus","ncr_modbus"]},
-  {id:"hart",   label:"HART",    skus:["cncr_hart","ncr_hart"]},
-  {id:"analog", label:"4-20 mA", skus:["cncr_420","ncr_420"]},
-  {id:"bintrac",label:"BinTrac", skus:["bintrac"]},
-  {id:"smartbob",label:"SmartBob",skus:["smartbob"]}
-];
 const PROTO_LABEL = {modbus:"Modbus",hart:"HART",analog:"4-20 mA"};
+/* Order screen: sensor row, then protocol row for the selected sensor */
+const SENSOR_ROW = [
+  {fam:"cncr",     name:"CNCR",     icon:"radar",    skus:[["modbus","cncr_modbus"],["hart","cncr_hart"],["analog","cncr_420"]]},
+  {fam:"ncr",      name:"NCR",      icon:"radar2",   skus:[["modbus","ncr_modbus"],["hart","ncr_hart"],["analog","ncr_420"]]},
+  {fam:"smartbob", name:"SmartBob", icon:"bob",      skus:[["qty","smartbob"]]},
+  {fam:"bintrac",  name:"BinTrac",  icon:"loadcell", skus:[["qty","bintrac"]]}
+];
 const SENSOR_FAMILIES = ["cncr","ncr","bintrac","smartbob"];
 
 /* Wire purposes. "bank" = TC-100 terminal bank color from the system drawing */
@@ -391,7 +403,7 @@ const fresh = () => ({
   sid: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random()),
   started: new Date().toISOString(),
   job:{customer:"",site:"",address:"",installer:"",installerEmail:""},
-  added:[], bench:{start:null,end:null,seconds:null}, cat:"modbus",
+  added:[], bench:{start:null,end:null,seconds:null}, pick:"cncr",
   qty:{}, comm:null, net:null,
   sensors:[], checks:{}, step:0, mode:"wizard"
 });
@@ -486,6 +498,7 @@ function icon(name){
     terminal:`<rect x="4" y="14" width="40" height="20" rx="2" ${s}/><rect x="5" y="15" width="10" height="18" fill="#5b5f66"/><rect x="15" y="15" width="10" height="18" fill="#f0521d"/><rect x="25" y="15" width="9" height="18" fill="#1e88f0"/><rect x="34" y="15" width="9" height="18" fill="#fff"/>`,
     psu:`<rect x="12" y="4" width="24" height="40" rx="2" ${s} fill="#e8ebef"/><path d="M16 12h16M16 36h16" ${s}/><path d="M25 18l-4 7h6l-4 7" stroke="#f28c1b" stroke-width="2.4" fill="none"/>`,
     chiyu:`<rect x="6" y="14" width="36" height="20" rx="3" ${s} fill="#e8ebef"/><circle cx="14" cy="24" r="3" fill="#2e9e44"/><rect x="28" y="20" width="10" height="8" ${s}/>`,
+    c50:`<rect x="8" y="8" width="32" height="32" rx="4" stroke="#14202e" stroke-width="2.2" fill="#e8ebef"/><text x="24" y="29" font-size="12" font-weight="800" text-anchor="middle" fill="#14202e" font-family="system-ui,Arial">C50</text>`,
     usb:`<rect x="4" y="18" width="16" height="12" rx="2" ${s} fill="#e8ebef"/><path d="M20 24h10" ${s}/><rect x="30" y="19" width="14" height="10" rx="2" ${s}/><rect x="40" y="21" width="4" height="6" fill="#14202e"/>`
   };
   return `<svg viewBox="0 0 48 48" aria-hidden="true">${I[name]||""}</svg>`;
@@ -615,15 +628,21 @@ function tileHTML(p, showVariant=true){
 function tilesFor(group){
   return `<div class="tiles">`+PRODUCTS.filter(p=>p.group===group).map(p=>tileHTML(p)).join("")+`</div>`;
 }
-const catCount = c => c.skus.reduce((n,k)=>n+q(k),0);
+const famQty = f => f.skus.reduce((n,[,k])=>n+q(k),0);
 function rOrder(){
-  const cat = CATS.find(c=>c.id===S.cat) || CATS[0];
+  const f = SENSOR_ROW.find(x=>x.fam===S.pick) || SENSOR_ROW[0];
+  const one = f.skus.length===1;
   return `
   <h2>Tap what's on the packing list</h2>
-  <p class="sub">Pick the sensor type, then tap the sensor and set the quantity.</p>
-  <div class="grouphdr">Sensor type</div>
-  <div class="cats" role="tablist">${CATS.map(c=>`<button class="cat ${c.id===cat.id?'on':''}" data-cat="${c.id}" role="tab" aria-selected="${c.id===cat.id}">${c.label}${catCount(c)?`<span class="ct">${catCount(c)}</span>`:""}</button>`).join("")}</div>
-  <div class="tiles">${cat.skus.map(k=>tileHTML(P[k], false)).join("")}</div>
+  <p class="sub">Tap a sensor, then set how many of each protocol.</p>
+  <div class="grouphdr">Sensors</div>
+  <div class="tiles t4">${SENSOR_ROW.map(x=>`<div class="tile ${famQty(x)?'on':''} ${x.fam===f.fam?'pick':''}" data-pick="${x.fam}" role="button" aria-pressed="${x.fam===f.fam}">
+      <span class="badge">×${famQty(x)}</span>${icon(x.icon)}<div class="nm">${x.name}</div></div>`).join("")}</div>
+  <div class="grouphdr">${f.name} ${one?"quantity":"protocol"}</div>
+  <div class="protos ${one?"one":""}">${f.skus.map(([proto,k])=>`<div class="proto ${q(k)?'on':''}">
+      <div class="pl">${one?f.name:PROTO_LABEL[proto]}</div>
+      <div class="qty"><button data-dec="${k}" aria-label="fewer ${f.name} ${PROTO_LABEL[proto]||""}">−</button><b>${q(k)}</b><button data-inc="${k}" aria-label="more ${f.name} ${PROTO_LABEL[proto]||""}">+</button></div>
+    </div>`).join("")}</div>
   <div class="grouphdr">Gateway & display</div>${tilesFor("gateway")}
   <div class="grouphdr">Power & accessories</div>${tilesFor("accessories")}`;
 }
@@ -778,6 +797,8 @@ function connections(){
            {a:"Shield",b:"Tie to sensor shields",bs:"Sensor shields",color:addedFor("shld")||"bare"}]});
   if(has("c100")) C.push({id:"c100",title:"C-100 display",from:"C-100",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
     note:"Landing details coming. Wiring drawing for the C-100 still needed."});
+  if(has("c50")) C.push({id:"c50",title:"C50",from:"C50",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
+    note:"Landing details coming. Wiring drawing for the C50 still needed."});
   if(has("chiyu_bf430")) C.push({id:"chiyu",title:"Chiyu BF-430",from:"BF-430",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
     note:"RS-485 to Ethernet converter. Landing details coming."});
   S.sensors.forEach((s,i)=>{
@@ -1285,7 +1306,7 @@ function bind(){
   W.querySelectorAll("[data-add]").forEach(el=>el.onchange=()=>{ S.added[+el.dataset.add][el.dataset.k]=el.value; applyAddedToSplices(); save(); render(); });
   W.querySelectorAll("[data-deladd]").forEach(b=>b.onclick=()=>{ S.added.splice(+b.dataset.deladd,1); save(); render(); });
   const ar=W.querySelector("#addRun"); if(ar) ar.onclick=()=>{ addWire(); applyAddedToSplices(); save(); render(); };
-  W.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ S.cat=b.dataset.cat; save(); render(); });
+  W.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ S.pick=b.dataset.pick; save(); render(); });
   W.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>go(+b.dataset.goto));
   W.querySelectorAll("[data-photoin]").forEach(el=>el.onchange=()=>{ if(el.files&&el.files[0]) savePhoto(el.dataset.photoin, el.files[0]); });
   W.querySelectorAll("[data-photodel]").forEach(b=>b.onclick=async()=>{ const s=findS(b.dataset.photodel); await PDB.del(s.id).catch(()=>{}); s.photo=false; s.photoPath=""; save(); render(); });
@@ -1304,10 +1325,7 @@ function bind(){
 function setQty(k,v){
   S.qty[k]=Math.max(0,Math.min(99,v)); if(!S.qty[k]) delete S.qty[k];
   syncSensors(); save(); track("item_qty",{sku:k,qty:q(k)});
-  // update only the tile to keep scroll position
-  const t=W.querySelector(`[data-tile="${k}"]`);
-  if(t){ t.classList.toggle("on",!!q(k)); t.querySelector(".badge").textContent="×"+q(k); t.querySelector(".qty b").textContent=q(k); t.setAttribute("aria-pressed",!!q(k)); }
-  const nb=document.getElementById("nextBtn"); const blk=blocker(); nb.disabled=!!blk;
+  render();
 }
 
 document.getElementById("backBtn").onclick=()=>go(S.step-1);
