@@ -1,166 +1,1054 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BINMASTER | ORD Delta - Order & Customer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
-        .drop-zone.dragover { border-color: #be123c; background-color: #fff1f2; }
-        .binmaster-red { background-color: #be123c; }
-        .binmaster-red:hover { background-color: #9f1239; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14202e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>BST Installer</title>
+<link rel="icon" href="BST_Logo.png">
+<style>
+/* =========================================================
+   BST Installer App — single-file, phone-first
+   ========================================================= */
+:root{
+  --ink:#14202e; --ink2:#3a4a5c; --mute:#6b7a8c; --line:#dde3ea;
+  --bg:#f4f6f9; --card:#fff; --accent:#f28c1b; --accent-d:#c96d07;
+  --ok:#1f9d55; --warn:#c0392b; --blue:#1565d8;
+  /* TC-100 bank colors (from the system drawing) */
+  --bank-gnd:#5b5f66; --bank-pwr:#f0521d; --bank-a:#1e88f0; --bank-b:#ffffff;
+  --r:14px; --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:inherit}
+a{color:var(--blue)}
+.hidden{display:none!important}
+
+/* ---------- header ---------- */
+header.top{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;
+  display:flex;align-items:center;gap:10px;padding:10px 14px}
+header.top img{height:30px;width:auto;background:#fff;border-radius:6px;padding:2px 6px}
+header.top .brand-fallback{font-weight:800;letter-spacing:.5px;background:var(--accent);color:var(--ink);
+  border-radius:6px;padding:3px 8px}
+header.top h1{font-size:16px;margin:0;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modebtn{background:rgba(255,255,255,.12);border:0;border-radius:999px;padding:6px 12px;font-size:13px;color:#fff}
+
+/* progress */
+.progress{position:sticky;top:50px;z-index:19;background:var(--ink);padding:0 14px 10px}
+.progress .bar{height:6px;background:rgba(255,255,255,.15);border-radius:6px;overflow:hidden}
+.progress .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.progress .lbl{display:flex;justify-content:space-between;color:#b9c4d0;font-size:12px;margin-top:5px}
+
+/* ---------- layout ---------- */
+.shell{display:block;max-width:1200px;margin:0 auto}
+nav.steps{display:none}
+main{padding:14px 14px calc(96px + var(--safe-b))}
+.step{animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+.step h2{font-size:22px;margin:4px 0 4px}
+.step .sub{color:var(--ink2);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:16px}
+.callout{border-left:5px solid var(--accent);background:#fff7ec;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.callout.warn{border-color:var(--warn);background:#fdeeee}
+.callout.info{border-color:var(--blue);background:#eef5ff}
+.muted{color:var(--mute);font-size:14px}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1}
+label.f{display:block;font-size:13px;color:var(--ink2);margin:10px 0 4px;font-weight:600}
+input[type=text],select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+input[type=text]:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
+
+/* bottom nav */
+.bottombar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);
+  padding:10px 14px calc(10px + var(--safe-b));display:flex;gap:10px}
+.btn{border:0;border-radius:12px;padding:14px 16px;font-weight:700;background:var(--line)}
+.btn.primary{background:var(--accent);color:#1b1206;flex:1}
+.btn.primary:active{background:var(--accent-d)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.sm{padding:8px 12px;font-size:14px;border-radius:10px}
+.btn[disabled]{opacity:.4}
+
+/* ---------- product tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{position:relative;background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 6px 8px;
+  text-align:center;user-select:none;min-height:118px;display:flex;flex-direction:column;align-items:center}
+.tile svg{width:46px;height:46px;margin-top:2px}
+.tile .nm{font-size:12.5px;font-weight:700;line-height:1.15;margin-top:4px}
+.tile .vr{font-size:11px;color:var(--mute)}
+.tile.on{border-color:var(--accent);background:#fff7ec}
+.tile .qty{display:none;align-items:center;gap:4px;margin-top:6px}
+.tile.on .qty{display:flex}
+.tile .qty button{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:800}
+.tile .qty b{min-width:20px}
+.tile .badge{position:absolute;top:6px;right:6px;background:var(--accent);color:#1b1206;border-radius:999px;
+  font-size:11px;font-weight:800;padding:1px 7px;display:none}
+.tile.on .badge{display:block}
+.grouphdr{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);font-weight:700;margin:16px 2px 8px}
+
+/* segmented */
+.seg{display:flex;background:#e9edf2;border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:9px;padding:12px 6px;font-weight:700;color:var(--ink2)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:#eef1f5;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+.chip.acc{background:#ffe8cc}
+
+/* checklist */
+.check{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.check:last-child{border-bottom:0}
+.check input{width:24px;height:24px;accent-color:var(--ok);flex:none;margin-top:1px}
+
+/* wires */
+.wire{display:grid;grid-template-columns:28px 1fr 1.3fr 32px;gap:8px;align-items:center;margin-bottom:8px}
+.swatch{display:inline-block;vertical-align:middle;flex:none;width:28px;height:28px;border-radius:50%;border:2px solid #0002}
+.wire select{padding:10px 8px}
+.x{border:0;background:#f2f2f2;border-radius:8px;height:36px}
+.sensorhead{display:flex;align-items:center;gap:10px}
+.sensorhead svg{width:36px;height:36px;flex:none}
+.pill{font-size:11px;font-weight:800;border-radius:6px;padding:2px 6px;background:#eef1f5}
+.pill.ok{background:#dff3e7;color:var(--ok)}
+.pill.no{background:#fde8e6;color:var(--warn)}
+
+/* diagram */
+.diagram{width:100%;overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:var(--r)}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:22px;height:6px;border-radius:3px;display:inline-block;border:1px solid #0002}
+
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th,table.t td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t th{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.4px}
+
+.linkbtn{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;color:var(--ink);
+  background:#fff;border:2px solid var(--accent);border-radius:12px;padding:14px;font-weight:700;margin-top:8px}
+.linkbtn.disabled{border-color:var(--line);color:var(--mute);pointer-events:none}
+
+/* guide (scroll mode + print) */
+#guide{display:none}
+body.mode-scroll #wizard,body.mode-scroll .bottombar,body.mode-scroll .progress,body.mode-scroll nav.steps{display:none!important}
+body.mode-scroll #guide{display:block}
+.g-sec{page-break-inside:avoid;break-inside:avoid}
+.g-title{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.g-title img{height:40px}
+.g-num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);
+  color:#1b1206;font-weight:800;margin-right:8px;font-size:14px}
+
+/* splice rows */
+.wh{display:grid;grid-template-columns:28px 1fr 1.3fr 36px;gap:8px;font-size:12px;color:var(--mute);font-weight:700;margin:12px 0 6px}
+.wh span:first-child{grid-column:2}
+.wire{grid-template-columns:28px 1fr 1.3fr 36px}
+.splice{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:0 0 4px 14px;font-size:13px;color:var(--ink2)}
+.splice select{flex:1;max-width:60%}
+.swatch.sm{width:20px;height:20px}
+.wires .wire{padding-bottom:6px;border-bottom:1px dashed var(--line)}
+
+/* connection run cards */
+.conn svg{display:block;width:100%;height:auto;margin:8px 0}
+.connlist{list-style:none;padding:0;margin:0;font-size:14px}
+.connlist li{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid var(--line)}
+.connlist li:last-child{border:0}
+.pill.tbd{background:#fff1d6;color:#8a5a00}
+details.card summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
+details.card summary::after{content:"▾";color:var(--mute)}
+details.card[open] summary::after{content:"▴"}
+details.card summary::-webkit-details-marker{display:none}
+
+/* in-app setup tool sheet */
+.sheet{position:fixed;inset:0;z-index:60;background:#fff;display:flex;flex-direction:column}
+.sheethead{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ink);color:#fff;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.sheethead b{flex:1}
+.sheethead a{color:#ffd29a;font-size:14px}
+.sheet iframe{flex:1;border:0;width:100%}
+
+/* email FAB + modal */
+.fab{position:fixed;right:16px;bottom:calc(86px + var(--safe-b));z-index:40;width:56px;height:56px;border-radius:50%;
+  border:0;background:var(--ink);color:#fff;font-size:24px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
+.modal{position:fixed;inset:0;z-index:70;background:rgba(10,18,28,.55);display:flex;align-items:flex-end;justify-content:center}
+.modalbox{background:#fff;width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + var(--safe-b))}
+.modalbox h3{margin:0 0 4px}
+.modalbox input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+
+/* ---------- desktop ---------- */
+@media (min-width:900px){
+  .progress{display:none}
+  .shell{display:grid;grid-template-columns:250px 1fr;gap:24px;padding:20px}
+  nav.steps{display:block;position:sticky;top:70px;align-self:start}
+  nav.steps button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:transparent;
+    padding:10px 12px;border-radius:10px;color:var(--ink2);font-weight:600}
+  nav.steps button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  nav.steps button .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;
+    background:#e3e8ee;font-size:12px;flex:none}
+  nav.steps button.done .n{background:var(--ok);color:#fff}
+  nav.steps button.on .n{background:var(--accent);color:#1b1206}
+  main{padding:0 0 110px}
+  .tiles{grid-template-columns:repeat(5,1fr)}
+  .bottombar{left:50%;transform:translateX(-50%);max-width:1200px;border:1px solid var(--line);border-bottom:0;
+    border-radius:14px 14px 0 0}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  body.mode-scroll .shell{grid-template-columns:1fr;max-width:960px}
+  .sheet{inset:4vh 8vw;border-radius:14px;overflow:hidden;box-shadow:0 0 0 100vmax rgba(10,18,28,.55)}
+  .modal{align-items:center}.modalbox{border-radius:18px}
+  .fab{right:calc(50% - 580px)}
+}
+
+/* ---------- print = Quick Start Guide document ---------- */
+@media print{
+  @page{size:letter;margin:.5in}
+  body{background:#fff;font-size:11pt}
+  header.top,.progress,nav.steps,.bottombar,#wizard,.noprint,.fab,.modal,.sheet{display:none!important}
+  details.card>*{display:block}
+  #guide{display:block!important}
+  .shell{display:block;padding:0}
+  main{padding:0}
+  .card{border:1px solid #bbb;break-inside:avoid}
+  .diagram{border:0}
+  .diagram svg{min-width:0}
+  a{color:#000;text-decoration:none}
+  .linkbtn{border:1px solid #999}
+}
+</style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-900">
+<body>
 
-    <header class="bg-white p-4 shadow-sm border-b-2 border-black">
-        <div class="max-w-7xl mx-auto flex items-baseline gap-4">
-            <h1 class="text-3xl font-black italic tracking-tighter text-red-700">BINMASTER</h1>
-            <div class="flex flex-col">
-                <span class="text-xl font-bold uppercase">ORD Delta Tool</span>
-                <span class="text-[10px] tracking-widest text-gray-400 uppercase font-bold">New Orders & Customer Mapping</span>
-            </div>
-        </div>
-    </header>
+<header class="top">
+  <img id="logo" src="BST_Logo.png" alt="BST" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'brand-fallback',textContent:'BST'}))">
+  <h1 id="hdrTitle">Installer</h1>
+  <button class="modebtn" id="modeBtn" aria-label="Switch view">Guide view</button>
+</header>
+<div class="progress"><div class="bar"><i id="progBar"></i></div>
+  <div class="lbl"><span id="progLbl"></span><span id="progNum"></span></div></div>
 
-    <main class="max-w-4xl mx-auto p-6 space-y-6">
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white rounded shadow-sm overflow-hidden border border-gray-200">
-                <div class="bg-black text-white px-4 py-2 flex items-center gap-2">
-                    <span class="bg-red-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">1</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider">Baseline File (Older)</span>
-                </div>
-                <div id="drop-baseline" class="drop-zone m-4 p-8 rounded-lg flex flex-col items-center justify-center text-center cursor-pointer">
-                    <svg class="w-8 h-8 text-yellow-400 mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
-                    <p id="name-baseline" class="text-[10px] text-gray-400 font-bold uppercase">Drag Baseline Here</p>
-                    <input type="file" id="file-baseline" class="hidden" accept=".xlsx, .xls, .csv">
-                </div>
-            </div>
+<div class="shell">
+  <nav class="steps" id="stepNav"></nav>
+  <main>
+    <section id="wizard"></section>
+    <section id="guide"></section>
+  </main>
+</div>
 
-            <div class="bg-white rounded shadow-sm overflow-hidden border border-gray-200">
-                <div class="bg-black text-white px-4 py-2 flex items-center gap-2">
-                    <span class="bg-red-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">2</span>
-                    <span class="text-[10px] font-bold uppercase tracking-wider">Current File (Newer)</span>
-                </div>
-                <div id="drop-current" class="drop-zone m-4 p-8 rounded-lg flex flex-col items-center justify-center text-center cursor-pointer">
-                    <svg class="w-8 h-8 text-yellow-400 mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
-                    <p id="name-current" class="text-[10px] text-gray-400 font-bold uppercase">Drag Current Here</p>
-                    <input type="file" id="file-current" class="hidden" accept=".xlsx, .xls, .csv">
-                </div>
-            </div>
-        </div>
+<div class="bottombar" id="bottombar">
+  <button class="btn ghost" id="backBtn">Back</button>
+  <button class="btn primary" id="nextBtn">Next</button>
+</div>
 
-        <button id="process-btn" class="binmaster-red text-white px-10 py-4 rounded font-bold uppercase text-xs w-full shadow-md transition-all active:scale-[0.98]">
-            Identify New Orders & Customers
-        </button>
+<button class="fab hidden" id="fab" aria-label="Email me a one-page guide" title="Email me a one-page guide">✉</button>
 
-        <div id="results" class="hidden animate-in fade-in duration-500">
-            <div class="bg-white border border-gray-200 rounded shadow-sm overflow-hidden">
-                <div class="bg-gray-50 border-b px-6 py-3 flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-gray-600">Delta Report</h3>
-                    <span id="summary-count" class="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase"></span>
-                </div>
-                <table class="min-w-full text-left">
-                    <thead class="bg-white border-b uppercase text-[10px] font-bold text-gray-400">
-                        <tr>
-                            <th class="px-6 py-3">Order Number</th>
-                            <th class="px-6 py-3 border-l">Customer</th>
-                        </tr>
-                    </thead>
-                    <tbody id="report-output" class="text-sm font-medium"></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
+<div class="sheet hidden" id="sheet" role="dialog" aria-modal="true">
+  <div class="sheethead"><b id="sheetTitle">Setup</b><a id="sheetExt" target="_blank" rel="noopener">Open in new tab ↗</a>
+    <button class="btn sm" id="sheetClose">Done</button></div>
+  <iframe id="sheetFrame" title="Sensor setup tool" allow="fullscreen"></iframe>
+</div>
 
-    <script>
-        let dataStore = { baseline: null, current: null };
+<div class="modal hidden" id="mail" role="dialog" aria-modal="true">
+  <div class="modalbox">
+    <h3>Email me a one-page guide</h3>
+    <div class="muted">Wire runs, landings, vessel names and setup links for this job.</div>
+    <input type="email" id="mailTo" placeholder="you@company.com" autocomplete="email" inputmode="email">
+    <div class="row"><button class="btn primary" id="mailSend">Send</button><button class="btn ghost" id="mailCancel">Cancel</button></div>
+    <p class="muted" id="mailStatus" style="min-height:1.2em"></p>
+  </div>
+</div>
 
-        function setupDropZone(zoneId, inputId, key) {
-            const zone = document.getElementById(zoneId);
-            const input = document.getElementById(inputId);
-            const nameDisp = document.getElementById(`name-${key}`);
+<script>
+/* =========================================================
+   CONFIG — edit these
+   ========================================================= */
+const CONFIG = {
+  // Supabase: leave blank to run without analytics.
+  // Use the anon/public key ONLY (never the service_role key) — it is visible in page source.
+  SUPABASE_URL: "",          // e.g. "https://abcd1234.supabase.co"
+  SUPABASE_ANON_KEY: "",
+  SETUP_LINKS: {
+    cncr: "https://binmastercody.github.io/cncr-setup/",
+    ncr:  "https://bmtchspprt.github.io/radar-setup/index.html",
+    bintrac: "",   // not available yet
+    smartbob: ""   // not available yet
+  },
+  // Email: set true after deploying supabase/functions/send-guide (see README in that file).
+  // If false or the send fails, the app falls back to the phone's mail app (text only).
+  EMAIL_ENABLED: false,
+  APP_VERSION: "0.2.0"
+};
 
-            zone.onclick = () => input.click();
-            zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('dragover'); };
-            zone.ondragleave = () => zone.classList.remove('dragover');
-            zone.ondrop = (e) => {
-                e.preventDefault();
-                zone.classList.remove('dragover');
-                handleFile(e.dataTransfer.files[0], key, nameDisp);
-            };
-            input.onchange = (e) => handleFile(e.target.files[0], key, nameDisp);
-        }
+/* =========================================================
+   PRODUCT CATALOG
+   family: sensor families get setup links, vessel names, wiring
+   ========================================================= */
+const PRODUCTS = [
+  {sku:"cncr_modbus", name:"CNCR", variant:"Modbus", family:"cncr", proto:"modbus", group:"sensors", icon:"radar"},
+  {sku:"cncr_hart",   name:"CNCR", variant:"HART",   family:"cncr", proto:"hart",   group:"sensors", icon:"radar"},
+  {sku:"cncr_420",    name:"CNCR", variant:"4-20 mA",family:"cncr", proto:"analog", group:"sensors", icon:"radar"},
+  {sku:"ncr_modbus",  name:"NCR",  variant:"Modbus", family:"ncr",  proto:"modbus", group:"sensors", icon:"radar2"},
+  {sku:"ncr_hart",    name:"NCR",  variant:"HART",   family:"ncr",  proto:"hart",   group:"sensors", icon:"radar2"},
+  {sku:"ncr_420",     name:"NCR",  variant:"4-20 mA",family:"ncr",  proto:"analog", group:"sensors", icon:"radar2"},
+  {sku:"bintrac",     name:"BinTrac", variant:"Weight", family:"bintrac", proto:null, group:"sensors", icon:"loadcell"},
+  {sku:"smartbob",    name:"SmartBob",variant:"Cable", family:"smartbob",proto:null, group:"sensors", icon:"bob"},
+  {sku:"ltx_cell",    name:"LTX", variant:"Cellular", family:"ltx", net:"cellular", group:"gateway", icon:"ltxcell"},
+  {sku:"ltx_eth",     name:"LTX", variant:"Ethernet", family:"ltx", net:"ethernet", group:"gateway", icon:"ltxeth"},
+  {sku:"c100",        name:"C-100", variant:"Display", family:"c100", group:"gateway", icon:"display"},
+  {sku:"tc100",       name:"TC-100", variant:"Junction", family:"tc100", group:"accessories", icon:"terminal"},
+  {sku:"psdc",        name:"PSDC", variant:"24–30 VDC", family:"psdc", group:"accessories", icon:"psu"},
+  {sku:"chiyu_bf430", name:"Chiyu BF-430", variant:"Serial↔IP", family:"chiyu", group:"accessories", icon:"chiyu"},
+  {sku:"rs485_usb",   name:"485→USB", variant:"Adapter", family:"usb", group:"accessories", icon:"usb"}
+];
+const P = Object.fromEntries(PRODUCTS.map(p=>[p.sku,p]));
+const SENSOR_FAMILIES = ["cncr","ncr","bintrac","smartbob"];
 
-        async function handleFile(file, key, display) {
-            if (!file) return;
-            display.innerText = file.name;
-            display.classList.remove('text-gray-400');
-            display.classList.add('text-blue-600');
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            dataStore[key] = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-        }
+/* Wire purposes. "bank" = TC-100 terminal bank color from the system drawing */
+const PURPOSES = [
+  {id:"pwr",   label:"+24 VDC power",   bank:"var(--bank-pwr)", stroke:"#e53935"},
+  {id:"gnd",   label:"0 V / ground (−)",bank:"var(--bank-gnd)", stroke:"#222"},
+  {id:"rs_a",  label:"RS-485 (blue bank)",  bank:"var(--bank-a)", stroke:"#1e88f0"},
+  {id:"rs_b",  label:"RS-485 (white bank)", bank:"var(--bank-b)", stroke:"#9aa3ad"},
+  {id:"sig",   label:"4-20 mA / HART signal", bank:null, stroke:"#8e24aa"},
+  {id:"shld",  label:"Shield / drain",  bank:null, stroke:"#777"},
+  {id:"none",  label:"Not used",        bank:null, stroke:"#ccc"}
+];
+const PUR = Object.fromEntries(PURPOSES.map(p=>[p.id,p]));
+const COLORS = {red:"#e53935",black:"#222",white:"#f5f5f5",brown:"#7b4a1e",blue:"#1e63d6",purple:"#7e3fb0",
+  green:"#2e9e44",yellow:"#f4c20d",orange:"#f57c00",gray:"#9e9e9e",bare:"#c9a26b"};
 
-        setupDropZone('drop-baseline', 'file-baseline', 'baseline');
-        setupDropZone('drop-current', 'file-current', 'current');
+/* Defaults ONLY where we have a BinMaster drawing to back them up.
+   CNCR Modbus — from "LTX to CNCR 190 from PSDC-4" drawing (TC-100 banks). */
+const WIRE_DEFAULTS = {
+  cncr_modbus:[{color:"brown",purpose:"pwr"},{color:"blue",purpose:"gnd"},
+               {color:"black",purpose:"rs_a"},{color:"white",purpose:"rs_b"},{color:"bare",purpose:"shld"}]
+};
+const CABLE_TYPES = ["4-conductor shielded","2-pair shielded twisted pair (RS-485)","Separate pairs (power + comms)",
+  "2-conductor shielded (loop)","Other / unsure"];
+/* When an installer splices to their own wire, suggest these colors (editable). */
+const SPLICE_SUGGEST = {pwr:"red", gnd:"black"};
+const NAMES = {cncr:"CNCR",ncr:"NCR",bintrac:"BinTrac",smartbob:"SmartBob"};
+/* Where each wire job lands. s = short label for diagrams */
+const LAND = {
+  tc:{pwr:["Orange bank (+24 V)","Orange +24 V"],gnd:["Gray bank (0 V)","Gray 0 V"],rs_a:["Blue bank (RS-485)","Blue RS-485"],
+      rs_b:["White bank (RS-485)","White RS-485"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]},
+  direct:{pwr:["PSDC +V","PSDC +V"],gnd:["PSDC −V","PSDC −V"],rs_a:["LTX RS-485 (blue wire)","LTX RS-485 blue"],
+      rs_b:["LTX RS-485 (white wire)","LTX RS-485 white"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]}
+};
 
-        document.getElementById('process-btn').onclick = () => {
-            if (!dataStore.baseline || !dataStore.current) {
-                alert("Please upload both files.");
-                return;
-            }
+/* =========================================================
+   STATE (persisted to localStorage so installers can resume)
+   ========================================================= */
+const KEY="bst_installer_v1";
+const fresh = () => ({
+  sid: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random()),
+  started: new Date().toISOString(),
+  job:{customer:"",site:"",installer:""},
+  qty:{}, comm:null, net:null,
+  sensors:[], checks:{}, step:0, mode:"wizard"
+});
+let S = load();
+function load(){ try{ return Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY))||{}); }catch(e){ return fresh(); } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
-            const baselineRows = dataStore.baseline;
-            const currentRows = dataStore.current;
-            const header = currentRows[0];
-            
-            const orderColIndex = header.findIndex(h => String(h).toLowerCase().includes('order'));
-            const customerColIndex = header.findIndex(h => String(h).toLowerCase().includes('customer'));
-            
-            if (orderColIndex === -1 || customerColIndex === -1) {
-                alert(`Missing Columns: ${orderColIndex === -1 ? '[Order] ' : ''}${customerColIndex === -1 ? '[Customer]' : ''}`);
-                return;
-            }
+const q = s => S.qty[s]||0;
+const has = fam => PRODUCTS.some(p=>p.family===fam && q(p.sku)>0);
+const commsUsed = () => [...new Set(PRODUCTS.filter(p=>p.proto && q(p.sku)>0).map(p=>p.proto))];
+const netUsed = () => [...new Set(PRODUCTS.filter(p=>p.net && q(p.sku)>0).map(p=>p.net))];
 
-            const baselineSet = new Set(baselineRows.slice(1).map(row => String(row[orderColIndex]).trim()));
-            
-            let outputRowsHtml = "";
-            let count = 0;
+/* keep sensor instances in sync with quantities */
+function syncSensors(){
+  const out=[];
+  PRODUCTS.filter(p=>SENSOR_FAMILIES.includes(p.family)).forEach(p=>{
+    const existing = S.sensors.filter(s=>s.sku===p.sku);
+    for(let i=0;i<q(p.sku);i++){
+      out.push(existing[i] || {id:p.sku+"_"+i+"_"+Math.random().toString(36).slice(2,6), sku:p.sku,
+        vessel:"", yellow:false, cable:"", splice:false, configured:false,
+        wires: JSON.parse(JSON.stringify(WIRE_DEFAULTS[p.sku]||[])), wiresFromDrawing: !!WIRE_DEFAULTS[p.sku]});
+    }
+  });
+  S.sensors=out;
+}
 
-            for (let i = 1; i < currentRows.length; i++) {
-                const orderId = String(currentRows[i][orderColIndex] || "").trim();
-                const customerName = String(currentRows[i][customerColIndex] || "").trim();
+/* =========================================================
+   ANALYTICS — Supabase REST (no SDK needed) + offline queue
+   ========================================================= */
+const QKEY="bst_evq";
+function track(event, data={}){
+  const row = {session_id:S.sid, event, step:STEPS[S.step]?.id||null, data,
+    app_version:CONFIG.APP_VERSION, ua:navigator.userAgent.slice(0,200), created_at:new Date().toISOString()};
+  let qd=[]; try{ qd=JSON.parse(localStorage.getItem(QKEY))||[] }catch(e){}
+  qd.push(row); if(qd.length>300) qd=qd.slice(-300);
+  localStorage.setItem(QKEY, JSON.stringify(qd));
+  flush();
+}
+let flushing=false;
+async function flush(){
+  if(flushing || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || !navigator.onLine) return;
+  let qd=[]; try{ qd=JSON.parse(localStorage.getItem(QKEY))||[] }catch(e){}
+  if(!qd.length) return;
+  flushing=true;
+  try{
+    const r = await fetch(CONFIG.SUPABASE_URL+"/rest/v1/install_events",{method:"POST",
+      headers:{"apikey":CONFIG.SUPABASE_ANON_KEY,"Authorization":"Bearer "+CONFIG.SUPABASE_ANON_KEY,
+               "Content-Type":"application/json","Prefer":"return=minimal"},
+      body:JSON.stringify(qd)});
+    if(r.ok){ localStorage.setItem(QKEY,"[]"); }
+  }catch(e){} finally{ flushing=false; }
+}
+window.addEventListener("online", flush);
 
-                if (orderId && !baselineSet.has(orderId)) {
-                    count++;
-                    outputRowsHtml += `
-                        <tr class="border-b hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-3 font-mono text-blue-600">${orderId}</td>
-                            <td class="px-6 py-3 border-l text-gray-700">${customerName}</td>
-                        </tr>`;
-                }
-            }
+/* =========================================================
+   ICONS (generic line drawings)
+   ========================================================= */
+function icon(name){
+  const s='stroke="#14202e" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+  const I={
+    radar:`<rect x="14" y="20" width="20" height="22" rx="4" ${s} fill="#e8ebef"/><rect x="18" y="12" width="12" height="8" ${s}/><path d="M14 24h20" stroke="#e53935" stroke-width="3"/><path d="M24 4v8" ${s}/>`,
+    radar2:`<rect x="12" y="22" width="24" height="18" rx="3" ${s} fill="#e8ebef"/><path d="M16 22l3-10h10l3 10" ${s}/><path d="M24 4v8" ${s}/>`,
+    loadcell:`<rect x="6" y="18" width="36" height="12" rx="2" ${s} fill="#e8ebef"/><circle cx="14" cy="24" r="2" fill="#14202e"/><circle cx="34" cy="24" r="2" fill="#14202e"/><path d="M24 30v10M18 40h12" ${s}/>`,
+    bob:`<rect x="14" y="4" width="20" height="12" rx="2" ${s} fill="#e8ebef"/><path d="M24 16v16" ${s} stroke-dasharray="2 3"/><path d="M18 32h12l-3 12h-6z" ${s} fill="#f28c1b"/>`,
+    ltxcell:`<rect x="6" y="18" width="36" height="24" rx="3" ${s} fill="#c62828"/><path d="M34 18V4" ${s}/><rect x="11" y="24" width="12" height="6" fill="#fff"/>`,
+    ltxeth:`<rect x="6" y="14" width="36" height="24" rx="3" ${s} fill="#c62828"/><rect x="18" y="38" width="12" height="7" ${s} fill="#fff"/><rect x="11" y="20" width="12" height="6" fill="#fff"/>`,
+    display:`<rect x="6" y="8" width="36" height="28" rx="3" ${s} fill="#e8ebef"/><rect x="11" y="13" width="26" height="12" fill="#14202e"/><text x="24" y="23" font-size="9" text-anchor="middle" fill="#7cff7c" font-family="monospace">88.8</text><path d="M18 36v6h12v-6" ${s}/>`,
+    terminal:`<rect x="4" y="14" width="40" height="20" rx="2" ${s}/><rect x="5" y="15" width="10" height="18" fill="#5b5f66"/><rect x="15" y="15" width="10" height="18" fill="#f0521d"/><rect x="25" y="15" width="9" height="18" fill="#1e88f0"/><rect x="34" y="15" width="9" height="18" fill="#fff"/>`,
+    psu:`<rect x="12" y="4" width="24" height="40" rx="2" ${s} fill="#e8ebef"/><path d="M16 12h16M16 36h16" ${s}/><path d="M25 18l-4 7h6l-4 7" stroke="#f28c1b" stroke-width="2.4" fill="none"/>`,
+    chiyu:`<rect x="6" y="14" width="36" height="20" rx="3" ${s} fill="#e8ebef"/><circle cx="14" cy="24" r="3" fill="#2e9e44"/><rect x="28" y="20" width="10" height="8" ${s}/>`,
+    usb:`<rect x="4" y="18" width="16" height="12" rx="2" ${s} fill="#e8ebef"/><path d="M20 24h10" ${s}/><rect x="30" y="19" width="14" height="10" rx="2" ${s}/><rect x="40" y="21" width="4" height="6" fill="#14202e"/>`
+  };
+  return `<svg viewBox="0 0 48 48" aria-hidden="true">${I[name]||""}</svg>`;
+}
 
-            const resultsDiv = document.getElementById('results');
-            const output = document.getElementById('report-output');
-            const summary = document.getElementById('summary-count');
-            
-            if (count > 0) {
-                output.innerHTML = outputRowsHtml;
-                summary.innerText = `${count} New Orders Found`;
-            } else {
-                output.innerHTML = `<tr><td colspan="2" class="px-6 py-8 text-center text-gray-400 italic">No new entries found.</td></tr>`;
-                summary.innerText = "0 New Orders";
-            }
+/* =========================================================
+   STEPS
+   ========================================================= */
+const STEPS = [
+  {id:"start",   title:"Start",            render:rStart},
+  {id:"order",   title:"What's in the order", render:rOrder},
+  {id:"comms",   title:"Communication",    render:rComms},
+  {id:"unbox",   title:"Unbox & name vessels", render:rUnbox},
+  {id:"wires",   title:"Identify wires",   render:rWires},
+  {id:"bench",   title:"Power & bench setup", render:rBench},
+  {id:"place",   title:"Sensor placement", render:rPlace},
+  {id:"wiring",  title:"System wiring",    render:rWiring},
+  {id:"done",    title:"Quick Start Guide",render:rDone}
+];
 
-            resultsDiv.classList.remove('hidden');
-            resultsDiv.scrollIntoView({ behavior: 'smooth' });
-        };
-    </script>
+const W = document.getElementById("wizard");
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function go(i){
+  i=Math.max(0,Math.min(STEPS.length-1,i));
+  if(i===S.step && W.innerHTML) return;
+  S.step=i; save(); render(); window.scrollTo({top:0}); track("step_view",{step:STEPS[i].id});
+}
+function render(){
+  document.body.classList.toggle("mode-scroll", S.mode==="scroll");
+  document.getElementById("modeBtn").textContent = S.mode==="scroll" ? "Step-by-step" : "Guide view";
+  const fabOn = S.mode==="scroll" || ["wiring","done"].includes(STEPS[S.step].id);
+  document.getElementById("fab").classList.toggle("hidden", !fabOn);
+  if(S.mode==="scroll"){ renderGuide(); return; }
+  const st=STEPS[S.step];
+  W.innerHTML=`<div class="step">${st.render()}</div>`;
+  document.getElementById("hdrTitle").textContent = "Installer · "+st.title;
+  document.getElementById("progBar").style.width = ((S.step)/(STEPS.length-1)*100)+"%";
+  document.getElementById("progLbl").textContent = st.title;
+  document.getElementById("progNum").textContent = `Step ${S.step+1} of ${STEPS.length}`;
+  document.getElementById("backBtn").disabled = S.step===0;
+  const nb=document.getElementById("nextBtn");
+  nb.textContent = S.step===STEPS.length-1 ? "Print Quick Start Guide" : (S.step===0?"Start install":"Next");
+  const blk = blocker(); nb.disabled = !!blk; nb.title = blk||"";
+  document.getElementById("stepNav").innerHTML = STEPS.map((x,i)=>
+    `<button class="${i===S.step?'on':''} ${i<S.step?'done':''}" data-go="${i}"><span class="n">${i<S.step?'✓':i+1}</span>${x.title}</button>`).join("");
+  bind();
+}
+function blocker(){
+  const id=STEPS[S.step].id;
+  if(id==="order" && !PRODUCTS.some(p=>q(p.sku)>0)) return "Add at least one item";
+  return "";
+}
+
+/* ---------- Step: start ---------- */
+function rStart(){
+  return `
+  <h2>Let's install it right the first time.</h2>
+  <p class="sub">About 10 swipes. Your progress saves on this phone automatically.</p>
+  <div class="callout"><b>Before you start:</b> find the <b>packing list</b> in the clear envelope on the outside of one of the boxes. You'll use it on the next screen.</div>
+  <div class="card">
+    <h3>Job (optional)</h3>
+    <label class="f">Customer / company</label><input type="text" data-job="customer" value="${esc(S.job.customer)}" placeholder="e.g. Smith Grain Co.">
+    <label class="f">Site / location</label><input type="text" data-job="site" value="${esc(S.job.site)}" placeholder="e.g. North elevator">
+    <label class="f">Installer name</label><input type="text" data-job="installer" value="${esc(S.job.installer)}">
+  </div>
+  ${S.sensors.length||Object.keys(S.qty).length?`<button class="btn ghost sm noprint" id="resetBtn">Start a new install (clear saved)</button>`:""}`;
+}
+
+/* ---------- Step: order (swipe 1) ---------- */
+function tilesFor(group){
+  return `<div class="tiles">`+PRODUCTS.filter(p=>p.group===group).map(p=>`
+    <div class="tile ${q(p.sku)?'on':''}" data-tile="${p.sku}" role="button" aria-pressed="${!!q(p.sku)}">
+      <span class="badge">×${q(p.sku)}</span>
+      ${icon(p.icon)}<div class="nm">${p.name}</div><div class="vr">${p.variant}</div>
+      <div class="qty"><button data-dec="${p.sku}" aria-label="less">−</button><b>${q(p.sku)}</b><button data-inc="${p.sku}" aria-label="more">+</button></div>
+    </div>`).join("")+`</div>`;
+}
+function rOrder(){
+  return `
+  <h2>Tap what's on the packing list</h2>
+  <p class="sub">Tap an item to add it, then set the quantity.</p>
+  <div class="grouphdr">Level sensors</div>${tilesFor("sensors")}
+  <div class="grouphdr">Gateway & display</div>${tilesFor("gateway")}
+  <div class="grouphdr">Power & accessories</div>${tilesFor("accessories")}`;
+}
+
+/* ---------- Step: comms (swipe 2) ---------- */
+function rComms(){
+  const cu=commsUsed(), nu=netUsed();
+  const comm = S.comm || (cu.length===1?cu[0]:null);
+  const net  = S.net  || (nu.length===1?nu[0]:null);
+  const items = PRODUCTS.filter(p=>q(p.sku)).map(p=>`<span class="chip acc">${q(p.sku)}× ${p.name} ${p.variant}</span>`).join("");
+  return `
+  <h2>Confirm communication</h2>
+  <p class="sub">We picked these from your order. Change them if the packing list says otherwise.</p>
+  <div class="card"><h3>Your order</h3><div class="chips">${items||'<span class="muted">Nothing selected yet.</span>'}</div></div>
+  <div class="card"><h3>Sensor output</h3>
+    <div class="seg" data-seg="comm">
+      ${[["modbus","Modbus"],["hart","HART"],["analog","Analog 4-20"]].map(([v,l])=>`<button class="${comm===v?'on':''}" data-v="${v}">${l}</button>`).join("")}
+    </div>
+    ${cu.length>1?`<p class="muted">Mixed outputs on this order: ${cu.join(", ")}. Each sensor keeps its own type.</p>`:""}
+  </div>
+  <div class="card"><h3>LTX connection</h3>
+    <div class="seg" data-seg="net">
+      ${[["cellular","Cellular"],["ethernet","Ethernet"]].map(([v,l])=>`<button class="${net===v?'on':''}" data-v="${v}">${l}</button>`).join("")}
+    </div>
+    ${!has("ltx")?`<p class="muted">No LTX on this order.</p>`:""}
+  </div>
+  <div class="card"><h3>Junction</h3>
+    <p class="muted" style="margin:0">${has("tc100")?"TC-100 junction on order — wiring will go through the TC-100.":"No TC-100 on order — sensors wire directly to the LTX / display."}</p>
+  </div>`;
+}
+
+/* ---------- Step: unbox ---------- */
+function sensorLabel(s,i){ const p=P[s.sku]; return `${p.name} ${p.variant} #${i+1}`; }
+function rUnbox(){
+  if(!S.sensors.length) return noSensors();
+  return `
+  <h2>Open the boxes</h2>
+  <div class="callout"><b>Save the yellow sheets</b> packed with each sensor. They list the sensor's wire colors and settings — you'll need them on the next screen.</div>
+  <p class="sub">Name the vessel each sensor goes on. Use the name the customer uses.</p>
+  ${S.sensors.map((s,i)=>`
+  <div class="card">
+    <div class="sensorhead">${icon(P[s.sku].icon)}<div class="grow"><b>${sensorLabel(s,i)}</b></div></div>
+    <label class="f">Vessel name</label>
+    <input type="text" data-sensor="${s.id}" data-k="vessel" value="${esc(s.vessel)}" placeholder="e.g. South Grain Bin, Plastic Resin Silo 11">
+    <label class="check" style="border:0;padding-bottom:0"><input type="checkbox" data-sensor="${s.id}" data-k="yellow" ${s.yellow?"checked":""}><span>Yellow sheet saved</span></label>
+  </div>`).join("")}`;
+}
+function noSensors(){ return `<h2>No sensors selected</h2><div class="callout warn">Go back to the order screen and add the sensors from the packing list.</div>`; }
+
+/* ---------- Step: wires ---------- */
+const colorOpts = sel => Object.keys(COLORS).map(c=>`<option ${sel===c?"selected":""}>${c}</option>`).join("");
+function rWires(){
+  if(!S.sensors.length) return noSensors();
+  const dest = has("tc100") ? "the TC-100" : "the LTX / power supply";
+  return `
+  <h2>Identify the wires</h2>
+  <p class="sub">Use the yellow sheet to give each sensor wire its job. Running your own wire to ${dest}? Pick which of your colors each sensor wire splices to.</p>
+  ${S.sensors.map((s,i)=>{
+    const twins = S.sensors.filter(x=>x.sku===s.sku).length>1;
+    return `
+  <div class="card">
+    <div class="sensorhead">${icon(P[s.sku].icon)}<div class="grow"><b>${sensorLabel(s,i)}</b><div class="muted">${esc(s.vessel)||"Vessel not named"}</div></div></div>
+    ${s.wiresFromDrawing?`<div class="callout info" style="margin:10px 0">Sensor wire colors pre-filled from the BinMaster CNCR Modbus drawing.</div>`
+      :`<div class="callout" style="margin:10px 0">Enter this sensor's wire colors from the yellow sheet.</div>`}
+    <label class="f">Wire from sensor to ${dest}</label>
+    <div class="seg" data-splice="${s.id}">
+      <button class="${!s.splice?'on':''}" data-v="0">Sensor cable reaches</button>
+      <button class="${s.splice?'on':''}" data-v="1">Splicing my own wire</button>
+    </div>
+    ${s.splice?`<label class="f">My wire</label><select data-sensor="${s.id}" data-k="cable"><option value="">Select type…</option>
+      ${CABLE_TYPES.map(c=>`<option ${s.cable===c?"selected":""}>${c}</option>`).join("")}</select>`:""}
+    <div class="wires">
+      <div class="wh"><span>Sensor wire</span><span>Job</span></div>
+      ${s.wires.map((w,wi)=>`
+      <div class="wire">
+        <span class="swatch" style="background:${COLORS[w.color]||'#fff'}"></span>
+        <select data-wire="${s.id}" data-wi="${wi}" data-k="color" aria-label="sensor wire color">${colorOpts(w.color)}</select>
+        <select data-wire="${s.id}" data-wi="${wi}" data-k="purpose" aria-label="wire job">${PURPOSES.map(p=>`<option value="${p.id}" ${w.purpose===p.id?"selected":""}>${p.label}</option>`).join("")}</select>
+        <button class="x" data-delwire="${s.id}" data-wi="${wi}" aria-label="remove wire">✕</button>
+        ${s.splice && w.purpose!=="none" ? `<div class="splice">↳ splices to my
+          <span class="swatch sm" style="background:${COLORS[w.field]||'#fff'}"></span>
+          <select data-wire="${s.id}" data-wi="${wi}" data-k="field" aria-label="my wire color"><option value="">color…</option>${colorOpts(w.field)}</select></div>`:""}
+      </div>`).join("")}
+    </div>
+    ${spliceClash(s)?`<div class="callout warn" style="margin:8px 0 0">${spliceClash(s)}</div>`:""}
+    <div class="row" style="flex-wrap:wrap;margin-top:8px"><button class="btn ghost sm" data-addwire="${s.id}">+ Add wire</button>
+      ${twins?`<button class="btn ghost sm" data-copyall="${s.id}">Use for all ${P[s.sku].name} ${P[s.sku].variant}</button>`:""}</div>
+  </div>`}).join("")}`;
+}
+
+/* Suggest my-wire colors: +24V→red, 0V→black, others keep the sensor color unless that color is taken. */
+function suggestSplice(s){
+  const live=s.wires.filter(w=>w.purpose!=="none");
+  const used=new Set(live.filter(w=>w.field).map(w=>w.field));
+  const take=(w,c)=>{ w.field=c; used.add(c); };
+  live.filter(w=>!w.field && SPLICE_SUGGEST[w.purpose] && !used.has(SPLICE_SUGGEST[w.purpose])).forEach(w=>take(w,SPLICE_SUGGEST[w.purpose]));
+  live.filter(w=>!w.field && !used.has(w.color)).forEach(w=>take(w,w.color));
+  live.filter(w=>!w.field).forEach(w=>take(w,["green","yellow","orange","white","blue","purple","gray"].find(x=>!used.has(x))||w.color));
+}
+function spliceClash(s){
+  if(!s.splice) return "";
+  const m={}; s.wires.filter(w=>w.purpose!=="none"&&w.field).forEach(w=>(m[w.field]=m[w.field]||[]).push(PUR[w.purpose].label));
+  const bad=Object.entries(m).filter(([,v])=>v.length>1);
+  return bad.length?`Your <b>${bad.map(b=>b[0]).join(", ")}</b> wire is used for more than one job (${bad.map(b=>b[1].join(" + ")).join("; ")}). Pick a different color.`:"";
+}
+
+/* ---------- Connections model (drives bench, runs, diagram, email) ---------- */
+function connections(){
+  const tc=has("tc100"), ltx=has("ltx"), psdc=has("psdc"), C=[];
+  const ps = psdc ? "PSDC" : "24 VDC supply";
+  if(psdc) C.push({id:"ac",title:"AC power to PSDC",from:"115 VAC",to:"PSDC",
+    wires:[{a:"Line (hot)",b:"L",color:"black"},{a:"Neutral",b:"N",color:"white"}],
+    note:"Power OFF and locked out before wiring. Follow local electrical code."});
+  if(tc) C.push({id:"ps_tc",title:"24 VDC to TC-100",from:ps,to:"TC-100",
+    wires:[{a:"+V",b:LAND.tc.pwr[0],bs:LAND.tc.pwr[1],color:"red"},{a:"−V",b:LAND.tc.gnd[0],bs:LAND.tc.gnd[1],color:"black"}]});
+  if(ltx) C.push({id:"ps_ltx",title:"24 VDC to LTX",from:ps,to:"LTX-100",tbd:true,
+    wires:[{a:"+V",b:"24 VDC +",color:"red"},{a:"−V",b:"24 VDC −",color:"black"}],
+    note:"The LTX can also run from a 24 VDC wall-wart supply."});
+  if(ltx && tc) C.push({id:"ltx_tc",title:"RS-485 cable: LTX to TC-100",from:"LTX-100",to:"TC-100",tbd:true,
+    wires:[{a:"RS-485 (blue)",b:LAND.tc.rs_a[0],bs:LAND.tc.rs_a[1],color:"blue"},
+           {a:"RS-485 (white)",b:LAND.tc.rs_b[0],bs:LAND.tc.rs_b[1],color:"white"},
+           {a:"Shield",b:"Tie to sensor shields",bs:"Sensor shields",color:"bare"}]});
+  if(has("c100")) C.push({id:"c100",title:"C-100 display",from:"C-100",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
+    note:"Landing details coming. Wiring drawing for the C-100 still needed."});
+  if(has("chiyu_bf430")) C.push({id:"chiyu",title:"Chiyu BF-430",from:"BF-430",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
+    note:"RS-485 to Ethernet converter. Landing details coming."});
+  S.sensors.forEach((s,i)=>{
+    const p=P[s.sku], analog=["hart","analog"].includes(p.proto), L=tc?LAND.tc:LAND.direct;
+    const wires=s.wires.filter(w=>w.purpose!=="none").map(w=>({a:w.color+" lead", b:L[w.purpose][0], bs:L[w.purpose][1],
+      color:w.color, field:(s.splice&&w.field)?w.field:null, purpose:w.purpose}));
+    const unused=s.wires.filter(w=>w.purpose==="none").map(w=>w.color);
+    const notes=[];
+    if(!wires.length) notes.push("Enter this sensor's wires on the Identify wires step.");
+    if(!tc && !analog && S.sensors.length>1) notes.push("No TC-100: daisy-chain power and RS-485 from sensor to sensor.");
+    if(unused.length) notes.push("Insulate unused: "+unused.join(", ")+".");
+    if(s.splice) notes.push("Seal every splice against moisture.");
+    C.push({id:s.id,sensor:true,title:`${p.name} ${p.variant} · ${s.vessel||"Sensor #"+(i+1)}`,
+      from:`${p.name} · ${s.vessel||"#"+(i+1)}`, to:tc?"TC-100":(analog?"Loop":"PSDC + LTX"),
+      wires, note:notes.join(" "), tbd:analog || (!tc && wires.length>0)});
+  });
+  return C;
+}
+const trunc=(t,n)=>{t=String(t);return t.length>n?t.slice(0,n-1)+"…":t};
+function connSVG(c){
+  const n=Math.max(c.wires.length,1), rowH=30, top=34, H=top+n*rowH+8, Wd=360, bw=120;
+  const seg=(x1,x2,y,col)=>`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#0004" stroke-width="7" stroke-linecap="round"/><line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${col}" stroke-width="5" stroke-linecap="round"/>`;
+  let g=`<svg viewBox="0 0 ${Wd} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial" font-size="11">
+  <rect x="1" y="1" width="${bw}" height="${H-2}" rx="8" fill="#f3f5f8" stroke="#14202e" stroke-width="1.5"/>
+  <rect x="${Wd-bw-1}" y="1" width="${bw}" height="${H-2}" rx="8" fill="#f3f5f8" stroke="#14202e" stroke-width="1.5"/>
+  <text x="${bw/2}" y="20" text-anchor="middle" font-weight="800" font-size="11">${esc(trunc(c.from,17))}</text>
+  <text x="${Wd-bw/2}" y="20" text-anchor="middle" font-weight="800" font-size="12">${esc(trunc(c.to,18))}</text>`;
+  if(!c.wires.length) g+=`<text x="${Wd/2}" y="${top+16}" text-anchor="middle" fill="#8a5a00">landing TBD</text>`;
+  c.wires.forEach((w,i)=>{
+    const y=top+i*rowH+rowH/2, ca=wireStroke(w.color)||"#999", cb=wireStroke(w.field||w.color)||"#999", x1=bw+1, x2=Wd-bw-1, mid=Wd/2;
+    g+=`<text x="${bw-6}" y="${y+4}" text-anchor="end">${esc(trunc(w.a,18))}</text>`;
+    if(w.field && w.field!==w.color){ g+=seg(x1,mid,y,ca)+seg(mid,x2,y,cb)+`<circle cx="${mid}" cy="${y}" r="5" fill="#fff" stroke="#14202e" stroke-width="1.5"/>`; }
+    else g+=seg(x1,x2,y,ca);
+    g+=`<text x="${Wd-bw+6}" y="${y+4}">${esc(trunc(w.bs||w.b,18))}</text>`;
+  });
+  if(c.wires.some(w=>w.field&&w.field!==w.color)) g+=`<text x="${Wd/2}" y="${top-4}" text-anchor="middle" font-size="10" fill="#3a4a5c">splice</text>`;
+  return g+`</svg>`;
+}
+const sw = c => `<span class="swatch sm" style="background:${COLORS[c]||'#fff'}"></span>`;
+function connCard(c,n){
+  return `<div class="card conn g-sec">
+    <h3><span class="g-num">${n}</span>${esc(c.title)} ${c.tbd?'<span class="pill tbd">labels to confirm</span>':''}</h3>
+    ${connSVG(c)}
+    <ul class="connlist">${c.wires.map(w=>`<li>${sw(w.color)}<b>${esc(w.a)}</b> → ${w.field&&w.field!==w.color?`splice to ${sw(w.field)}<b>${esc(w.field)}</b> → `:""}${esc(w.b)}</li>`).join("")}</ul>
+    ${c.note?`<p class="muted" style="margin:8px 0 0">${esc(c.note)}</p>`:""}
+  </div>`;
+}
+/* Invert runs into "what lands on each device" */
+function deviceLandings(){
+  const D=new Map(), add=(d,r)=>{ if(!D.has(d)) D.set(d,[]); D.get(d).push(r); };
+  connections().forEach(c=>c.wires.forEach(w=>{
+    const endColor=w.field||w.color;
+    add(c.from,{t:w.a,color:w.color,to:`${c.to} · ${w.b}`});
+    add(c.to,{t:w.b,color:endColor,to:c.from});
+  }));
+  return [...D.entries()];
+}
+
+/* ---------- Step: power & bench setup ---------- */
+function rBench(){
+  const fams = SENSOR_FAMILIES.filter(has);
+  const chk=(k,t)=>`<label class="check"><input type="checkbox" data-check="${k}" ${S.checks[k]?"checked":""}><span>${t}</span></label>`;
+  const dev = deviceLandings();
+  return `
+  <h2>Power & bench setup</h2>
+  <div class="callout"><b>Bench it first.</b> Lay every part out on a bench, wire it with short leads, and get every sensor reading <b>before</b> anything goes up on the bin.</div>
+  <div class="card"><h3>Safety</h3>
+    ${chk("pw_off","AC power is OFF and locked out while you wire.")}
+  </div>
+  <h3 style="margin:16px 2px 8px">Where wires land</h3>
+  ${dev.map(([name,rows],i)=>`<details class="card" ${i<2?"open":""}><summary><b>${esc(name)}</b><span class="muted">${rows.length} wires</span></summary>
+    <table class="t" style="margin-top:8px"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${esc(r.t)}</td><td style="white-space:nowrap">${sw(r.color)} ${esc(r.color)}</td><td>${esc(r.to)}</td></tr>`).join("")}</tbody></table>
+  </details>`).join("") || `<div class="callout warn">Add items on the order step to see landings.</div>`}
+  <h3 style="margin:16px 2px 8px">Configure sensors</h3>
+  ${fams.map(f=>{
+    const url=CONFIG.SETUP_LINKS[f];
+    const mine=S.sensors.filter(s=>P[s.sku].family===f);
+    return `<div class="card"><h3>${NAMES[f]}</h3>
+      ${url?`<button class="linkbtn" style="width:100%" data-opensetup="${f}">Open ${NAMES[f]} setup <span>›</span></button>`
+           :`<div class="linkbtn disabled">${NAMES[f]} setup guide coming soon</div>`}
+      ${mine.map(s=>`<label class="check"><input type="checkbox" data-sensor="${s.id}" data-k="configured" ${s.configured?"checked":""}><span>Configured: <b>${esc(s.vessel)||sensorLabel(s,S.sensors.indexOf(s))}</b></span></label>`).join("")}
+    </div>`;}).join("") || `<div class="callout warn">No sensors on this order.</div>`}
+  <div class="card"><h3>Bench test</h3>
+    ${chk("b_power","Power on: 24 VDC present at the sensors.")}
+    ${has("ltx")?chk("b_ltx","LTX powers up."):""}
+    ${chk("b_read","Every sensor shows a reading"+(has("ltx")?" on the LTX":"")+(has("c100")?" / C-100":"")+".")}
+    ${chk("b_off","Power off before moving parts to the bin.")}
+  </div>`;
+}
+
+/* ---------- Step: placement ---------- *//* ---------- Step: placement ---------- */
+function placementSVG(){
+  return `<svg viewBox="0 0 760 360" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial" font-size="13">
+  <!-- TOP VIEW -->
+  <text x="180" y="22" text-anchor="middle" font-weight="700" font-size="15">Top view</text>
+  <circle cx="180" cy="185" r="140" fill="#f3f5f8" stroke="#14202e" stroke-width="3"/>
+  <circle cx="180" cy="185" r="93.3" fill="none" stroke="#1f9d55" stroke-width="0"/>
+  <path d="M180 45a140 140 0 1 0 0.01 0" fill="none"/>
+  <!-- zone annulus r=70 (1/2) to r=93.3 (1/3 from wall) -->
+  <path fill="#1f9d55" fill-opacity=".28" fill-rule="evenodd"
+    d="M180 91.7a93.3 93.3 0 1 0 0.01 0zM180 115a70 70 0 1 1 -0.01 0z"/>
+  <circle cx="180" cy="185" r="93.3" fill="none" stroke="#1f9d55" stroke-dasharray="5 4"/>
+  <circle cx="180" cy="185" r="70" fill="none" stroke="#1f9d55" stroke-dasharray="5 4"/>
+  <!-- fill stream -->
+  <circle cx="180" cy="185" r="26" fill="#c0392b" fill-opacity=".25" stroke="#c0392b" stroke-width="2"/>
+  <text x="180" y="189" text-anchor="middle" fill="#c0392b" font-weight="700" font-size="11">FILL</text>
+  <!-- ladder -->
+  <rect x="300" y="160" width="16" height="50" fill="#c0392b" fill-opacity=".25" stroke="#c0392b" stroke-width="2"/>
+  <text x="308" y="226" text-anchor="middle" fill="#c0392b" font-size="11">ladder</text>
+  <!-- sensor -->
+  <circle cx="180" cy="103" r="9" fill="#f28c1b" stroke="#14202e" stroke-width="2"/>
+  <text x="196" y="99" font-weight="700">Sensor</text>
+  <!-- dims -->
+  <line x1="40" y1="335" x2="180" y2="335" stroke="#14202e"/><text x="110" y="352" text-anchor="middle" font-size="11">wall → center (radius)</text>
+  <!-- SIDE VIEW -->
+  <text x="560" y="22" text-anchor="middle" font-weight="700" font-size="15">Side view</text>
+  <path d="M420 120 L560 50 L700 120 V300 H420 Z" fill="#f3f5f8" stroke="#14202e" stroke-width="3"/>
+  <path d="M420 300 L560 240 L700 300 Z" fill="#e0c48a"/>
+  <line x1="560" y1="50" x2="560" y2="240" stroke="#c0392b" stroke-width="3" stroke-dasharray="6 4"/>
+  <text x="566" y="150" fill="#c0392b" font-size="11">fill stream</text>
+  <rect x="471" y="80" width="14" height="16" fill="#f28c1b" stroke="#14202e" stroke-width="2" transform="rotate(-26 478 88)"/>
+  <path d="M472 100 L455 290 M484 100 L520 270" stroke="#f28c1b" stroke-dasharray="4 4"/>
+  <text x="404" y="78" font-weight="700">Sensor</text>
+  <line x1="420" y1="320" x2="560" y2="320" stroke="#14202e" stroke-width="1"/><line x1="467" y1="320" x2="490" y2="320" stroke="#1f9d55" stroke-width="6"/>
+  <text x="478" y="340" text-anchor="middle" font-size="11" fill="#1f9d55">1/3–1/2 of radius</text>
+  </svg>`;
+}
+function rPlace(){
+  return `
+  <h2>Where to mount the sensor</h2>
+  <p class="sub">On the bin roof, in the green ring.</p>
+  <div class="diagram">${placementSVG()}</div>
+  <div class="card" style="margin-top:12px">
+    <label class="check"><input type="checkbox" data-check="pl_zone" ${S.checks.pl_zone?"checked":""}><span><b>1/3 to 1/2</b> of the way from the sidewall toward the center.</span></label>
+    <label class="check"><input type="checkbox" data-check="pl_fill" ${S.checks.pl_fill?"checked":""}><span>Away from fill streams.</span></label>
+    <label class="check"><input type="checkbox" data-check="pl_obs" ${S.checks.pl_obs?"checked":""}><span>Clear of inside ladders, braces, and other structures.</span></label>
+  </div>`;
+}
+
+/* ---------- System wire diagram generator ---------- */
+const wireStroke = c => c==="white" ? "#b8c0c8" : (COLORS[c]||null);
+function wireDiagramSVG(){
+  const tc=has("tc100"), ltx=has("ltx"), psdc=has("psdc"), disp=has("c100");
+  const sens=S.sensors.filter(s=>P[s.sku].proto==="modbus" || !P[s.sku].proto);
+  const analog=S.sensors.filter(s=>["hart","analog"].includes(P[s.sku].proto));
+  const shown=sens.slice(0,6), more=sens.length-shown.length;
+  const Wd=960, H=560;
+  const col={pwr:"#e53935",gnd:"#222",a:"#1e88f0",b:"#b8c0c8",sh:"#888"};
+  const net = S.net || netUsed()[0];
+  let g=`<svg viewBox="0 0 ${Wd} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial" font-size="13">
+  <rect width="${Wd}" height="${H}" fill="#fff"/>
+  <text x="16" y="26" font-weight="800" font-size="16">System wiring — ${esc(S.job.site||S.job.customer||"this job")}</text>
+  <text x="${Wd-16}" y="26" text-anchor="end" fill="#c0392b" font-size="11">DRAFT from order — verify against BinMaster drawings before energizing</text>`;
+  const box=(x,y,w,h,t,sub,fill="#f3f5f8")=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill}" stroke="#14202e" stroke-width="2"/>
+    <text x="${x+w/2}" y="${y+22}" text-anchor="middle" font-weight="800">${t}</text>${sub?`<text x="${x+w/2}" y="${y+40}" text-anchor="middle" font-size="11" fill="#3a4a5c">${sub}</text>`:""}`;
+  const line=(pts,c,w=3,dash="")=>`<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:""} stroke-linejoin="round"/>`;
+
+  // Gateway (LTX) or display
+  const gwName = ltx ? `LTX-100 (${net||"—"})` : disp ? "C-100 Display" : "Controller";
+  g+=box(30,70,200,110,gwName, ltx?"RS-485 + 24 VDC in":"", "#fde3e3");
+  if(ltx && net==="cellular") g+=`<line x1="200" y1="70" x2="200" y2="40" stroke="#14202e" stroke-width="4"/><text x="208" y="52" font-size="11">antenna</text>`;
+  if(ltx && net==="ethernet") g+=`<rect x="110" y="180" width="40" height="16" fill="#fff" stroke="#14202e"/><text x="130" y="214" text-anchor="middle" font-size="11">Ethernet to network</text>`;
+  if(disp && ltx) g+=box(30,240,200,70,"C-100 Display","on RS-485 bus");
+  // PSDC
+  if(psdc){
+    g+=box(30,400,200,110,"PSDC Power Supply","115 VAC in → 24 VDC out");
+    g+=`<text x="60" y="540" font-size="11">L / N ← 115 VAC</text>`;
+  } else {
+    g+=box(30,400,200,110,"24 VDC supply","(not on order — confirm)","#fff7ec");
+  }
+  const hubX = tc?420:560;
+  if(tc){
+    // TC-100 with four banks
+    const bx=420,by=210,bw=320,bh=90, cw=bw/4;
+    const banks=[["0 V","#5b5f66","#fff"],["+24 V","#f0521d","#fff"],["RS-485","#1e88f0","#fff"],["RS-485","#ffffff","#14202e"]];
+    banks.forEach((b,i)=>{ g+=`<rect x="${bx+i*cw}" y="${by}" width="${cw}" height="${bh}" fill="${b[1]}" stroke="#14202e" stroke-width="2"/>
+      <text x="${bx+i*cw+cw/2}" y="${by+bh/2+5}" text-anchor="middle" fill="${b[2]}" font-weight="800">${b[0]}</text>`; });
+    g+=`<text x="${bx+bw+10}" y="${by+bh/2+5}" font-weight="800">TC-100</text>`;
+    const top=by, bot=by+bh, xc=i=>bx+i*cw+cw/2;
+    // power from PSDC
+    g+=line(`230,440 300,440 300,150 ${xc(0)-12},150 ${xc(0)-12},${top}`,col.gnd);
+    g+=line(`230,470 320,470 320,170 ${xc(1)-12},170 ${xc(1)-12},${top}`,col.pwr);
+    g+=`<text x="${xc(0)-30}" y="140" font-size="11">from PSDC −V / +V</text>`;
+    // RS485 from LTX
+    g+=line(`230,110 ${xc(2)+10},110 ${xc(2)+10},${top}`,col.a,4);
+    g+=line(`230,124 ${xc(3)+10},124 ${xc(3)+10},${top}`,col.b,4);
+    g+=line(`230,96 ${xc(3)+50},96 ${xc(3)+50},${bot+60}`,col.sh,2,"5 4");
+    g+=`<text x="250" y="90" font-size="11">RS-485 cable (blue / white + shield)</text>`;
+    if(ltx){ g+=line(`230,140 270,140 270,440 230,440`,col.gnd,2); g+=line(`230,150 260,150 260,470 230,470`,col.pwr,2);
+      g+=`<text x="244" y="390" font-size="10" transform="rotate(-90 244 390)">LTX 24 VDC</text>`; }
+    // sensors
+    const n=Math.max(shown.length,1), sx0=400, span=380;
+    shown.forEach((s,i)=>{
+      const x=sx0+ (n===1?span/2: i*span/(n-1)), y=440;
+      const wires=s.wires||[];
+      const colorFor=pid=>{ const w=wires.find(w=>w.purpose===pid); return w?((s.splice&&w.field)||w.color):null; };
+      const lanes=[["gnd",0],["pwr",1],["rs_a",2],["rs_b",3]];
+      lanes.forEach(([pid,bi],k)=>{
+        const c = wireStroke(colorFor(pid)) || PUR[pid].stroke;
+        g+=line(`${xc(bi)+ (i-(n-1)/2)*6},${bot} ${x-12+k*8},${y}`, c, 2.5);
+      });
+      g+=line(`${xc(3)+50},${bot+60} ${x+24},${y}`,col.sh,1.5,"5 4");
+      g+=`<rect x="${x-44}" y="${y}" width="88" height="64" rx="10" fill="#e8ebef" stroke="#14202e" stroke-width="2"/>
+        <rect x="${x-44}" y="${y}" width="88" height="8" fill="#e53935"/>
+        <text x="${x}" y="${y+30}" text-anchor="middle" font-weight="800" font-size="11">${P[s.sku].name}</text>
+        <text x="${x}" y="${y+46}" text-anchor="middle" font-size="10">${esc((s.vessel||"Sensor "+(i+1)).slice(0,16))}</text>`;
+    });
+    if(more>0) g+=`<text x="800" y="520" font-size="12">+${more} more on same bus</text>`;
+  } else {
+    // direct daisy-chain bus
+    g+=`<text x="300" y="96" font-size="11">RS-485 bus + 24 VDC — daisy-chain sensors (no TC-100 on order)</text>`;
+    const y0=120; [["gnd",col.gnd],["pwr",col.pwr],["rs_a",col.a],["rs_b",col.b]].forEach(([k,c],i)=>{
+      g+=line(`230,${y0+i*12} 900,${y0+i*12}`,c,3); });
+    if(psdc){ g+=line(`230,440 290,440 290,${y0}`,col.gnd,2); g+=line(`230,470 300,470 300,${y0+12}`,col.pwr,2); }
+    const n=Math.max(shown.length,1);
+    shown.forEach((s,i)=>{
+      const x=400+(n===1?220:i*480/(n-1)), y=300;
+      for(let k=0;k<4;k++){ const pid=["gnd","pwr","rs_a","rs_b"][k];
+        const w=(s.wires||[]).find(w=>w.purpose===pid);
+        g+=line(`${x-12+k*8},${y0+k*12} ${x-12+k*8},${y}`, wireStroke(w&&((s.splice&&w.field)||w.color))||PUR[pid].stroke, 2.5); }
+      g+=`<rect x="${x-44}" y="${y}" width="88" height="64" rx="10" fill="#e8ebef" stroke="#14202e" stroke-width="2"/>
+        <rect x="${x-44}" y="${y}" width="88" height="8" fill="#e53935"/>
+        <text x="${x}" y="${y+30}" text-anchor="middle" font-weight="800" font-size="11">${P[s.sku].name}</text>
+        <text x="${x}" y="${y+46}" text-anchor="middle" font-size="10">${esc((s.vessel||"Sensor "+(i+1)).slice(0,16))}</text>`;
+    });
+    if(more>0) g+=`<text x="760" y="400" font-size="12">+${more} more on same bus</text>`;
+  }
+  if(!sens.length && !analog.length) g+=`<text x="560" y="300" text-anchor="middle" fill="#6b7a8c">Add sensors to see them here</text>`;
+  if(analog.length) g+=`<text x="16" y="${H-12}" fill="#8e24aa" font-size="12">${analog.length} HART / 4-20 mA sensor(s): wired as individual loops — drawing to come.</text>`;
+  if(has("chiyu_bf430")) g+=`<text x="${Wd-16}" y="${H-28}" text-anchor="end" font-size="11">Chiyu BF-430 on order (RS-485 ↔ Ethernet)</text>`;
+  if(has("rs485_usb")) g+=`<text x="${Wd-16}" y="${H-12}" text-anchor="end" font-size="11">485→USB adapter: for bench setup from a PC</text>`;
+  return g+`</svg>`;
+}
+function wiringTable(){
+  const rows=S.sensors.map((s,i)=>`<tr><td><b>${esc(s.vessel)||sensorLabel(s,i)}</b><br><span class="muted">${P[s.sku].name} ${P[s.sku].variant}</span></td>
+    <td>${(s.wires||[]).map(w=>`<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">${sw(w.color)}${esc(w.color)}${s.splice&&w.field&&w.purpose!=="none"?` → ${sw(w.field)}${esc(w.field)}`:""} = ${PUR[w.purpose]?.label||""}</div>`).join("")||'<span class="muted">not entered</span>'}</td></tr>`).join("");
+  return `<table class="t"><thead><tr><th>Sensor</th><th>Sensor wire → my wire = job</th></tr></thead><tbody>${rows||'<tr><td colspan=2 class="muted">No sensors</td></tr>'}</tbody></table>`;
+}
+const LEGEND = `<div class="legend"><span><i style="background:#222"></i>0 V</span><span><i style="background:#e53935"></i>+24 VDC</span>
+    <span><i style="background:#1e88f0"></i>RS-485 (blue bank)</span><span><i style="background:#b8c0c8"></i>RS-485 (white bank)</span><span><i style="background:#888"></i>Shield</span></div>`;
+function rWiring(){
+  const C=connections();
+  return `
+  <h2>Wire the system</h2>
+  <p class="sub">Scroll through each run, one at a time. ${has("tc100")?"Land each wire on the matching TC-100 color bank.":"No TC-100 on this order."}</p>
+  <details class="card"><summary><b>Whole system overview</b><span class="muted">tap to open</span></summary>
+    <div class="diagram" style="margin-top:10px">${wireDiagramSVG()}</div>${LEGEND}</details>
+  ${C.map((c,i)=>connCard(c,i+1)).join("")}`;
+}
+
+/* ---------- Step: done ---------- */
+function rDone(){
+  const vessels=S.sensors.filter(s=>s.vessel).length, conf=S.sensors.filter(s=>s.configured).length;
+  return `
+  <h2>You're set.</h2>
+  <p class="sub">Your Quick Start Guide is built from this install.</p>
+  <div class="card"><div class="chips">
+    <span class="chip">${S.sensors.length} sensors</span><span class="chip">${vessels} vessels named</span>
+    <span class="chip">${conf} configured on bench</span></div></div>
+  <button class="btn primary" style="width:100%;margin-bottom:10px" id="mailBtn2">✉ Email me the one-page guide</button>
+  <button class="btn ghost" style="width:100%;margin-bottom:10px" id="printBtn2">Print / save as PDF</button>
+  <button class="btn ghost" style="width:100%" id="scrollBtn">Read as one scrolling guide</button>`;
+}
+
+/* ---------- Guide (scroll + print) ---------- */
+function renderGuide(){
+  const G=document.getElementById("guide");
+  const items = PRODUCTS.filter(p=>q(p.sku)).map(p=>`<tr><td>${q(p.sku)}</td><td>${p.name} ${p.variant}</td></tr>`).join("");
+  const sec=(n,t,b)=>`<div class="card g-sec"><h3><span class="g-num">${n}</span>${t}</h3>${b}</div>`;
+  const C=connections();
+  G.innerHTML=`
+  <div class="g-title"><img src="BST_Logo.png" alt="" onerror="this.remove()"><div><h2 style="margin:0">Quick Start Guide</h2>
+    <div class="muted">${esc(S.job.customer)} ${S.job.site?"· "+esc(S.job.site):""} · ${new Date().toLocaleDateString()}</div></div></div>
+  <div class="row noprint" style="margin-bottom:12px;flex-wrap:wrap"><button class="btn primary" id="printBtn">Print / save as PDF</button><button class="btn ghost" id="backWiz">Step-by-step</button></div>
+  ${sec(1,"Order contents",`<table class="t"><thead><tr><th>Qty</th><th>Item</th></tr></thead><tbody>${items||'<tr><td colspan=2 class="muted">Nothing selected</td></tr>'}</tbody></table>
+     <p class="muted">Output: <b>${S.comm||commsUsed().join(", ")||"—"}</b> · LTX: <b>${S.net||netUsed().join(", ")||"—"}</b> · Junction: <b>${has("tc100")?"TC-100":"none"}</b></p>`)}
+  ${sec(2,"Unbox",`<p>Save the <b>yellow sheets</b> packed with each sensor.</p>
+     <table class="t"><thead><tr><th>Sensor</th><th>Vessel</th></tr></thead><tbody>${S.sensors.map((s,i)=>`<tr><td>${sensorLabel(s,i)}</td><td>${esc(s.vessel)||"________________"}</td></tr>`).join("")}</tbody></table>`)}
+  ${sec(3,"Wire colors",wiringTable())}
+  ${sec(4,"Bench setup",`<p>Wire everything on a bench with short leads and get every sensor reading before installing on the bin. AC power off while wiring.</p>
+     ${SENSOR_FAMILIES.filter(has).map(f=>CONFIG.SETUP_LINKS[f]?`<p><b>${NAMES[f]} setup:</b> <a href="${CONFIG.SETUP_LINKS[f]}">${CONFIG.SETUP_LINKS[f]}</a></p>`:`<p><b>${NAMES[f]}:</b> setup guide coming soon</p>`).join("")}`)}
+  ${sec(5,"Sensor placement",`<div class="diagram">${placementSVG()}</div><p>Mount <b>1/3 to 1/2</b> of the way from the sidewall to the center, away from fill streams, inside ladders and structures.</p>`)}
+  ${sec(6,"System overview",`<div class="diagram">${wireDiagramSVG()}</div>${LEGEND}`)}
+  <h3 style="margin:16px 2px 8px">Wire runs</h3>
+  ${C.map((c,i)=>connCard(c,"6."+(i+1))).join("")}
+  <p class="muted" style="text-align:center">Generated by BST Installer v${CONFIG.APP_VERSION}</p>`;
+  document.getElementById("hdrTitle").textContent="Quick Start Guide";
+  G.querySelector("#printBtn").onclick=doPrint;
+  G.querySelector("#backWiz").onclick=()=>{S.mode="wizard";save();render();};
+}
+function doPrint(){ track("print_guide",{sensors:S.sensors.length}); const m=S.mode; S.mode="scroll"; render(); setTimeout(()=>{window.print(); S.mode=m; render();},50); }
+
+/* ---------- In-app setup tool ---------- */
+function openSetup(f){
+  const url=CONFIG.SETUP_LINKS[f]; if(!url) return;
+  document.getElementById("sheetTitle").textContent=NAMES[f]+" setup";
+  document.getElementById("sheetExt").href=url;
+  document.getElementById("sheetFrame").src=url;
+  document.getElementById("sheet").classList.remove("hidden");
+  document.body.style.overflow="hidden";
+  track("setup_open",{family:f});
+}
+function closeSetup(){
+  document.getElementById("sheet").classList.add("hidden");
+  document.getElementById("sheetFrame").src="about:blank";
+  document.body.style.overflow="";
+}
+
+/* ---------- One-page guide (email) ---------- */
+function guideData(){
+  const sections=[];
+  sections.push({h:"Order",rows:PRODUCTS.filter(p=>q(p.sku)).map(p=>[q(p.sku)+"×",p.name+" "+p.variant])});
+  if(S.sensors.length) sections.push({h:"Sensors & vessels",rows:S.sensors.map((s,i)=>[sensorLabel(s,i),s.vessel||"—",s.splice?"spliced to my wire":"sensor cable"])});
+  connections().forEach((c,i)=>sections.push({h:`${i+1}. ${c.title}`,
+    rows:c.wires.map(w=>[w.a, w.field&&w.field!==w.color?`${w.color} → splice → ${w.field}`:w.color, w.b]), note:c.note||""}));
+  const fams=SENSOR_FAMILIES.filter(has);
+  if(fams.length) sections.push({h:"Sensor setup",rows:fams.map(f=>[NAMES[f],CONFIG.SETUP_LINKS[f]||"coming soon"])});
+  sections.push({h:"Placement",rows:[["Mount 1/3 to 1/2 of the way from sidewall to center, away from fill streams, ladders and structures."]]});
+  sections.push({h:"Bench first",rows:[["Wire and test every part on a bench before installing on the bin."]]});
+  return {title:"BST Quick Start Guide", subtitle:[S.job.customer,S.job.site,new Date().toLocaleDateString()].filter(Boolean).join(" · "),
+          appUrl:location.href.split("#")[0], sections};
+}
+function guideText(g){
+  return `${g.title}\n${g.subtitle}\n\n`+g.sections.map(s=>s.h.toUpperCase()+"\n"+s.rows.map(r=>"  "+r.join("  |  ")).join("\n")+(s.note?"\n  Note: "+s.note:"")).join("\n\n");
+}
+function svgToPng(svg){
+  return new Promise((res,rej)=>{
+    const m=svg.match(/viewBox="0 0 (\d+) (\d+)"/), w=+m[1], h=+m[2], sc=2;
+    const img=new Image();
+    img.onload=()=>{ const c=document.createElement("canvas"); c.width=w*sc; c.height=h*sc; const x=c.getContext("2d");
+      x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/png").split(",")[1]); };
+    img.onerror=rej;
+    img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg.replace("<svg ",`<svg width="${w}" height="${h}" `));
+  });
+}
+const mailStatus=t=>document.getElementById("mailStatus").textContent=t;
+function openMail(){ document.getElementById("mailTo").value=S.email||""; mailStatus(""); document.getElementById("mail").classList.remove("hidden"); }
+function closeMail(){ document.getElementById("mail").classList.add("hidden"); }
+async function sendGuide(){
+  const to=document.getElementById("mailTo").value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ mailStatus("Enter a valid email address."); return; }
+  S.email=to; save();
+  const g=guideData();
+  if(CONFIG.EMAIL_ENABLED && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && navigator.onLine){
+    mailStatus("Sending…");
+    try{
+      let png=null; try{ png=await svgToPng(wireDiagramSVG()); }catch(e){}
+      const r=await fetch(CONFIG.SUPABASE_URL+"/functions/v1/send-guide",{method:"POST",
+        headers:{"apikey":CONFIG.SUPABASE_ANON_KEY,"Authorization":"Bearer "+CONFIG.SUPABASE_ANON_KEY,"Content-Type":"application/json"},
+        body:JSON.stringify({to,guide:g,png,session_id:S.sid})});
+      if(r.ok){ mailStatus("Sent ✓ Check your inbox."); track("email_guide",{via:"function"}); return; }
+    }catch(e){}
+    mailStatus("Couldn't send from the app. Opening your mail app…");
+  }
+  track("email_guide",{via:"mailto"});
+  const body=guideText(g).slice(0,1800)+"\n\nFull guide: "+g.appUrl;
+  location.href=`mailto:${to}?subject=${encodeURIComponent(g.title+(S.job.site?" – "+S.job.site:""))}&body=${encodeURIComponent(body)}`;
+}
+
+/* =========================================================
+   EVENT BINDING
+   ========================================================= */
+function bind(){
+  W.querySelectorAll("[data-job]").forEach(el=>el.oninput=()=>{S.job[el.dataset.job]=el.value;save();});
+  W.querySelectorAll("[data-tile]").forEach(el=>el.onclick=e=>{
+    if(e.target.closest("button")) return;
+    const k=el.dataset.tile; if(!q(k)) setQty(k,1);
+  });
+  W.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>setQty(b.dataset.inc,q(b.dataset.inc)+1));
+  W.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>setQty(b.dataset.dec,q(b.dataset.dec)-1));
+  W.querySelectorAll("[data-seg]").forEach(sg=>sg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    S[sg.dataset.seg]=b.dataset.v; save(); track("comm_set",{[sg.dataset.seg]:b.dataset.v}); render();}));
+  const findS=id=>S.sensors.find(s=>s.id===id);
+  W.querySelectorAll("[data-sensor]").forEach(el=>{
+    const ev = el.type==="text"?"input":"change";
+    el.addEventListener(ev,()=>{ const s=findS(el.dataset.sensor); s[el.dataset.k]= el.type==="checkbox"?el.checked:el.value; save();
+      if(el.type!=="text") render(); });
+  });
+  W.querySelectorAll("[data-wire]").forEach(el=>el.onchange=()=>{const s=findS(el.dataset.wire); s.wires[+el.dataset.wi][el.dataset.k]=el.value; save(); render();});
+  W.querySelectorAll("[data-delwire]").forEach(b=>b.onclick=()=>{const s=findS(b.dataset.delwire); s.wires.splice(+b.dataset.wi,1); save(); render();});
+  W.querySelectorAll("[data-addwire]").forEach(b=>b.onclick=()=>{const s=findS(b.dataset.addwire); s.wires.push({color:"red",purpose:"pwr",field:""}); save(); render();});
+  W.querySelectorAll("[data-splice]").forEach(sg=>sg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    const s=findS(sg.dataset.splice); s.splice=b.dataset.v==="1";
+    if(s.splice) suggestSplice(s);
+    save(); track("splice_set",{sku:s.sku,splice:s.splice}); render(); }));
+  W.querySelectorAll("[data-copyall]").forEach(b=>b.onclick=()=>{const src=findS(b.dataset.copyall);
+    S.sensors.filter(x=>x.sku===src.sku&&x!==src).forEach(x=>{x.wires=JSON.parse(JSON.stringify(src.wires)); x.splice=src.splice; x.cable=src.cable;});
+    save(); render(); });
+  W.querySelectorAll("[data-opensetup]").forEach(b=>b.onclick=()=>openSetup(b.dataset.opensetup));
+  const mb=W.querySelector("#mailBtn2"); if(mb) mb.onclick=openMail;
+  W.querySelectorAll("[data-check]").forEach(el=>el.onchange=()=>{S.checks[el.dataset.check]=el.checked; save(); track("check",{k:el.dataset.check,v:el.checked});});
+  const rb=W.querySelector("#resetBtn"); if(rb) rb.onclick=()=>{ if(confirm("Clear this install and start over?")){ track("reset"); S=fresh(); save(); render(); } };
+  const pb=W.querySelector("#printBtn2"); if(pb) pb.onclick=doPrint;
+  const sb=W.querySelector("#scrollBtn"); if(sb) sb.onclick=()=>{S.mode="scroll";save();render();window.scrollTo({top:0});};
+  document.querySelectorAll("#stepNav [data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
+}
+function setQty(k,v){
+  S.qty[k]=Math.max(0,Math.min(99,v)); if(!S.qty[k]) delete S.qty[k];
+  syncSensors(); save(); track("item_qty",{sku:k,qty:q(k)});
+  // update only the tile to keep scroll position
+  const t=W.querySelector(`[data-tile="${k}"]`);
+  if(t){ t.classList.toggle("on",!!q(k)); t.querySelector(".badge").textContent="×"+q(k); t.querySelector(".qty b").textContent=q(k); t.setAttribute("aria-pressed",!!q(k)); }
+  const nb=document.getElementById("nextBtn"); const blk=blocker(); nb.disabled=!!blk;
+}
+
+document.getElementById("backBtn").onclick=()=>go(S.step-1);
+document.getElementById("nextBtn").onclick=()=>{
+  if(S.step===STEPS.length-1){ track("complete",{qty:S.qty,comm:S.comm,net:S.net,sensors:S.sensors.length}); doPrint(); }
+  else go(S.step+1);
+};
+document.getElementById("modeBtn").onclick=()=>{ S.mode=S.mode==="scroll"?"wizard":"scroll"; save(); track("mode",{mode:S.mode}); render(); window.scrollTo({top:0}); };
+
+/* swipe left/right between steps (ignores form controls and wide diagrams) */
+(()=>{ let x0=null,y0=null,t0=0;
+  W.addEventListener("touchstart",e=>{ if(e.target.closest("input,select,textarea,.diagram,.tile button")) {x0=null;return;}
+    x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now(); },{passive:true});
+  W.addEventListener("touchend",e=>{ if(x0===null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0;
+    if(Math.abs(dx)>70 && Math.abs(dx)>Math.abs(dy)*1.5 && Date.now()-t0<600){
+      if(dx<0 && !blocker() && S.step<STEPS.length-1) go(S.step+1); else if(dx>0) go(S.step-1); }
+    x0=null; },{passive:true});
+})();
+
+document.getElementById("fab").onclick=openMail;
+document.getElementById("mailCancel").onclick=closeMail;
+document.getElementById("mailSend").onclick=sendGuide;
+document.getElementById("mail").onclick=e=>{ if(e.target.id==="mail") closeMail(); };
+document.getElementById("sheetClose").onclick=closeSetup;
+
+/* boot */
+syncSensors(); render(); track("app_open",{ref:document.referrer||null, w:innerWidth});
+</script>
 </body>
 </html>
