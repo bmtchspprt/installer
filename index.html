@@ -273,7 +273,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "0.2.1"
+  APP_VERSION: "0.2.2"
 };
 
 /* =========================================================
@@ -385,6 +385,23 @@ function track(event, data={}){
   localStorage.setItem(QKEY, JSON.stringify(qd));
   flush();
 }
+/* Full copy of what the installer entered — sent only when something changed */
+function snapshotData(){
+  return {
+    step: STEPS[S.step]?.id, job: S.job,
+    items: PRODUCTS.filter(p=>q(p.sku)).map(p=>({sku:p.sku, name:p.name+" "+p.variant, qty:q(p.sku)})),
+    comm: S.comm||commsUsed().join(","), net: S.net||netUsed().join(","), tc100: has("tc100"),
+    sensors: S.sensors.map((s,i)=>({product:P[s.sku].name+" "+P[s.sku].variant, vessel:s.vessel, yellow_sheet_saved:!!s.yellow,
+      splice:!!s.splice, my_wire:s.cable||"", configured:!!s.configured,
+      wires:s.wires.map(w=>({sensor_color:w.color, my_color:s.splice?(w.field||""):"", job:PUR[w.purpose]?.label||w.purpose}))})),
+    checks: S.checks, email: S.email||""
+  };
+}
+function snap(){
+  const d=snapshotData(), str=JSON.stringify(Object.assign({},d,{step:null}));
+  let h=0; for(let i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))|0;
+  if(S._snap===h) return; S._snap=h; save(); track("snapshot",d);
+}
 let flushing=false;
 async function flush(){
   if(flushing || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || !navigator.onLine) return;
@@ -442,7 +459,7 @@ const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">
 function go(i){
   i=Math.max(0,Math.min(STEPS.length-1,i));
   if(i===S.step && W.innerHTML) return;
-  S.step=i; save(); render(); window.scrollTo({top:0}); track("step_view",{step:STEPS[i].id});
+  snap(); S.step=i; save(); render(); window.scrollTo({top:0}); track("step_view",{step:STEPS[i].id});
 }
 function render(){
   document.body.classList.toggle("mode-scroll", S.mode==="scroll");
@@ -965,7 +982,7 @@ function closeMail(){ document.getElementById("mail").classList.add("hidden"); }
 async function sendGuide(){
   const to=document.getElementById("mailTo").value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){ mailStatus("Enter a valid email address."); return; }
-  S.email=to; save();
+  S.email=to; save(); snap();
   const g=guideData();
   if(CONFIG.EMAIL_ENABLED && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && navigator.onLine){
     mailStatus("Sending…");
@@ -1031,7 +1048,7 @@ function setQty(k,v){
 
 document.getElementById("backBtn").onclick=()=>go(S.step-1);
 document.getElementById("nextBtn").onclick=()=>{
-  if(S.step===STEPS.length-1){ track("complete",{qty:S.qty,comm:S.comm,net:S.net,sensors:S.sensors.length}); doPrint(); }
+  if(S.step===STEPS.length-1){ snap(); track("complete",{qty:S.qty,comm:S.comm,net:S.net,sensors:S.sensors.length}); doPrint(); }
   else go(S.step+1);
 };
 document.getElementById("modeBtn").onclick=()=>{ S.mode=S.mode==="scroll"?"wizard":"scroll"; save(); track("mode",{mode:S.mode}); render(); window.scrollTo({top:0}); };
@@ -1051,6 +1068,8 @@ document.getElementById("mailCancel").onclick=closeMail;
 document.getElementById("mailSend").onclick=sendGuide;
 document.getElementById("mail").onclick=e=>{ if(e.target.id==="mail") closeMail(); };
 document.getElementById("sheetClose").onclick=closeSetup;
+
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") snap(); });
 
 /* boot */
 syncSensors(); render(); track("app_open",{ref:document.referrer||null, w:innerWidth});
