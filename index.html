@@ -1,4 +1,4 @@
-<!-- Version 7 — BST Installer App -->
+<!-- Version 8 — BST Installer App -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +77,7 @@ input[type=text]:focus,input[type=email]:focus,select:focus{outline:2px solid va
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .tile{position:relative;background:#fff;border:2px solid var(--line);border-radius:14px;padding:8px 6px 8px;
   text-align:center;user-select:none;min-height:118px;display:flex;flex-direction:column;align-items:center}
-.tile svg{width:46px;height:46px;margin-top:2px}
+.tile svg{width:100%;max-width:70px;height:50px;margin-top:2px}
 .tile .nm{font-size:12.5px;font-weight:700;line-height:1.15;margin-top:4px}
 .tile .vr{font-size:11px;color:var(--mute)}
 .tile.on{border-color:var(--accent);background:#fff7ec}
@@ -109,7 +109,7 @@ input[type=text]:focus,input[type=email]:focus,select:focus{outline:2px solid va
 .wire select{padding:10px 8px}
 .x{border:0;background:#f2f2f2;border-radius:8px;height:36px}
 .sensorhead{display:flex;align-items:center;gap:10px}
-.sensorhead svg{width:36px;height:36px;flex:none}
+.sensorhead svg{width:48px;height:44px;flex:none}
 .pill{font-size:11px;font-weight:800;border-radius:6px;padding:2px 6px;background:#eef1f5}
 .pill.ok{background:#dff3e7;color:var(--ok)}
 .pill.no{background:#fde8e6;color:var(--warn)}
@@ -139,6 +139,10 @@ body.mode-scroll #guide{display:block}
 .g-num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);
   color:#1b1206;font-weight:800;margin-right:8px;font-size:14px}
 
+/* part drawings in the order table */
+table.order td{vertical-align:middle}
+td.thumb{width:62px;padding:4px 6px 4px 0}
+.thumbpic,td.thumb svg{display:block;width:58px;height:46px}
 /* splice rows */
 .wh{display:grid;grid-template-columns:28px 1fr 1.3fr 36px;gap:8px;font-size:12px;color:var(--mute);font-weight:700;margin:12px 0 6px}
 .wh span:first-child{grid-column:2}
@@ -308,6 +312,8 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
   </div>
 </div>
 
+<!-- Part drawings (NCR, TC-100, LTX, PSDC, BinTrac…). Keep bst-parts.js next to this file. -->
+<script src="bst-parts.js"></script>
 <script>
 /* =========================================================
    CONFIG — edit these
@@ -326,7 +332,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "7"
+  APP_VERSION: "8"
 };
 
 /* =========================================================
@@ -337,16 +343,18 @@ const PRODUCTS = [
   {sku:"cncr_modbus", name:"CNCR", variant:"Modbus", family:"cncr", proto:"modbus", group:"sensors", icon:"radar"},
   {sku:"cncr_hart",   name:"CNCR", variant:"HART",   family:"cncr", proto:"hart",   group:"sensors", icon:"radar"},
   {sku:"cncr_420",    name:"CNCR", variant:"4-20 mA",family:"cncr", proto:"analog", group:"sensors", icon:"radar"},
-  {sku:"ncr_modbus",  name:"NCR",  variant:"Modbus", family:"ncr",  proto:"modbus", group:"sensors", icon:"radar2"},
-  {sku:"ncr_hart",    name:"NCR",  variant:"HART",   family:"ncr",  proto:"hart",   group:"sensors", icon:"radar2"},
-  {sku:"ncr_420",     name:"NCR",  variant:"4-20 mA",family:"ncr",  proto:"analog", group:"sensors", icon:"radar2"},
-  {sku:"bintrac",     name:"BinTrac", variant:"Weight", family:"bintrac", proto:null, group:"sensors", icon:"loadcell"},
+  {sku:"ncr_modbus",  name:"NCR",  variant:"Modbus", family:"ncr",  proto:"modbus", group:"sensors", icon:"radar2", part:"ncr-modbus"},
+  {sku:"ncr_hart",    name:"NCR",  variant:"HART",   family:"ncr",  proto:"hart",   group:"sensors", icon:"radar2", part:"ncr-hart-420"},
+  {sku:"ncr_420",     name:"NCR",  variant:"4-20 mA",family:"ncr",  proto:"analog", group:"sensors", icon:"radar2", part:"ncr-hart-420"},
+  {sku:"bintrac",     name:"BinTrac", variant:"Load cell", family:"bintrac", proto:null, group:"sensors", icon:"loadcell", part:"bintrac-mount"},
   {sku:"smartbob",    name:"SmartBob",variant:"Cable", family:"smartbob",proto:null, group:"sensors", icon:"bob"},
-  {sku:"ltx_cell",    name:"LTX", variant:"Cellular", family:"ltx", net:"cellular", group:"gateway", icon:"ltxcell"},
-  {sku:"ltx_eth",     name:"LTX", variant:"Ethernet", family:"ltx", net:"ethernet", group:"gateway", icon:"ltxeth"},
+  {sku:"ltx_cell",    name:"LTX", variant:"Cellular", family:"ltx", net:"cellular", group:"gateway", icon:"ltxcell", part:"ltx"},
+  {sku:"ltx_eth",     name:"LTX", variant:"Ethernet", family:"ltx", net:"ethernet", group:"gateway", icon:"ltxeth", part:"ltx"},
   {sku:"c100",        name:"C-100", variant:"Display", family:"c100", group:"gateway", icon:"display"},
-  {sku:"tc100",       name:"TC-100", variant:"Junction", family:"tc100", group:"accessories", icon:"terminal"},
-  {sku:"psdc",        name:"PSDC", variant:"24–30 VDC", family:"psdc", group:"accessories", icon:"psu"},
+  {sku:"bintrac_ind", name:"BinTrac", variant:"Indicator", family:"bintrac_ind", group:"gateway", icon:"display", part:"bintrac-indicator"},
+  {sku:"tc100",       name:"TC-100", variant:"Junction", family:"tc100", group:"accessories", icon:"terminal", part:"tc-100"},
+  {sku:"psdc",        name:"PSDC", variant:"24–30 VDC", family:"psdc", group:"accessories", icon:"psu", part:"psdc"},
+  {sku:"bintrac_sum", name:"Summing", variant:"Box", family:"bintrac_sum", group:"accessories", icon:"terminal", part:"bintrac-summing"},
   {sku:"chiyu_bf430", name:"Chiyu BF-430", variant:"Serial↔IP", family:"chiyu", group:"accessories", icon:"chiyu"},
   {sku:"rs485_usb",   name:"485→USB", variant:"Adapter", family:"usb", group:"accessories", icon:"usb"},
   {sku:"c50",         name:"C50", variant:"", family:"c50", group:"accessories", icon:"c50"}
@@ -505,6 +513,21 @@ function icon(name){
 }
 
 /* =========================================================
+   PART DRAWINGS (from bst-parts.js)
+   ========================================================= */
+const HAVE_PARTS = typeof BST_PARTS!=="undefined";
+/* LTX picture follows the order: HART cards, 4-20 mA cards, or none (Modbus) */
+function ltxPartId(){ const c=commsUsed(); return c.includes("hart")?"ltx-hart":c.includes("analog")?"ltx-4-20":"ltx-modbus"; }
+function partPic(id, cls="pp"){
+  if(!HAVE_PARTS || !BST_PARTS[id]) return "";
+  const p=BST_PARTS[id];
+  return `<svg class="${cls}" viewBox="${p.viewBox}" role="img" aria-label="${esc(p.name)}" font-family="system-ui,Arial">${DEFS}${p.draw()}</svg>`;
+}
+function prodPic(p, cls){ const id = p.part==="ltx" ? ltxPartId() : p.part; return (id && partPic(id,cls)) || icon(p.icon); }
+const FAM_PART = {ncr:"ncr-hart-420", bintrac:"bintrac-mount"};
+function famPic(f){ return (FAM_PART[f.fam] && partPic(FAM_PART[f.fam])) || icon(f.icon); }
+
+/* =========================================================
    STEPS
    ========================================================= */
 const STEPS = [
@@ -621,7 +644,7 @@ function useLocation(){
 function tileHTML(p, showVariant=true){
   return `<div class="tile ${q(p.sku)?'on':''}" data-tile="${p.sku}" role="button" aria-pressed="${!!q(p.sku)}">
       <span class="badge">×${q(p.sku)}</span>
-      ${icon(p.icon)}<div class="nm">${p.name}</div>${showVariant?`<div class="vr">${p.variant}</div>`:""}
+      ${prodPic(p)}<div class="nm">${p.name}</div>${showVariant?`<div class="vr">${p.variant}</div>`:""}
       <div class="qty"><button data-dec="${p.sku}" aria-label="less">−</button><b>${q(p.sku)}</b><button data-inc="${p.sku}" aria-label="more">+</button></div>
     </div>`;
 }
@@ -637,7 +660,7 @@ function rOrder(){
   <p class="sub">Tap a sensor, then set how many of each protocol.</p>
   <div class="grouphdr">Sensors</div>
   <div class="tiles t4">${SENSOR_ROW.map(x=>`<div class="tile ${famQty(x)?'on':''} ${x.fam===f.fam?'pick':''}" data-pick="${x.fam}" role="button" aria-pressed="${x.fam===f.fam}">
-      <span class="badge">×${famQty(x)}</span>${icon(x.icon)}<div class="nm">${x.name}</div></div>`).join("")}</div>
+      <span class="badge">×${famQty(x)}</span>${famPic(x)}<div class="nm">${x.name}</div></div>`).join("")}</div>
   <div class="grouphdr">${f.name} ${one?"quantity":"protocol"}</div>
   <div class="protos ${one?"one":""}">${f.skus.map(([proto,k])=>`<div class="proto ${q(k)?'on':''}">
       <div class="pl">${one?f.name:PROTO_LABEL[proto]}</div>
@@ -658,12 +681,12 @@ function rConfirm(){
   return `
   <h2>Your order</h2>
   <p class="sub">Check this against the packing list.</p>
-  <div class="card"><table class="t"><thead><tr><th>Qty</th><th>Item</th></tr></thead><tbody>
-    ${items.map(p=>`<tr><td><b>${q(p.sku)}</b></td><td>${p.name} ${p.variant}</td></tr>`).join("")||'<tr><td colspan=2 class="muted">Nothing selected</td></tr>'}
+  <div class="card"><table class="t order"><thead><tr><th></th><th>Qty</th><th>Item</th></tr></thead><tbody>
+    ${items.map(p=>`<tr><td class="thumb">${prodPic(p,"thumbpic")}</td><td><b>${q(p.sku)}×</b></td><td>${p.name} ${p.variant}${p.part==="ltx"&&HAVE_PARTS?`<div class="muted" style="font-size:13px">${BST_PARTS[ltxPartId()].name.replace("LTX-100 ","")} model</div>`:""}</td></tr>`).join("")||'<tr><td colspan=3 class="muted">Nothing selected</td></tr>'}
   </tbody></table></div>
   <div class="card"><div class="chips">
     ${cu.map(c=>`<span class="chip acc">${PROTO_LABEL[c]}</span>`).join("")}
-    ${has("bintrac")?`<span class="chip acc">BinTrac</span>`:""}${has("smartbob")?`<span class="chip acc">SmartBob</span>`:""}
+    ${has("bintrac")||has("bintrac_ind")||has("bintrac_sum")?`<span class="chip acc">BinTrac</span>`:""}${has("smartbob")?`<span class="chip acc">SmartBob</span>`:""}
     ${nu.map(n=>`<span class="chip acc">LTX ${n==="cellular"?"Cellular":"Ethernet"}</span>`).join("")}
     <span class="chip">${has("tc100")?"TC-100 junction":"No TC-100"}</span>
   </div></div>
@@ -680,7 +703,7 @@ function rUnbox(){
   <div class="callout"><b>Yellow sheets:</b> snap a photo of each sensor's yellow sheet. It's saved with that sensor and its vessel name, and goes in your email recap.</div>
   ${S.sensors.map((s,i)=>`
   <div class="card">
-    <div class="sensorhead">${icon(P[s.sku].icon)}<div class="grow"><b>${sensorLabel(s,i)}</b></div>${s.photo?'<span class="pill ok">Photo ✓</span>':""}</div>
+    <div class="sensorhead">${prodPic(P[s.sku])}<div class="grow"><b>${sensorLabel(s,i)}</b></div>${s.photo?'<span class="pill ok">Photo ✓</span>':""}</div>
     <label class="f" for="v_${s.id}">Vessel name</label>
     <input id="v_${s.id}" type="text" list="dl_vessel" data-sensor="${s.id}" data-k="vessel" value="${esc(s.vessel)}" placeholder="e.g. South Grain Bin, Plastic Resin Silo 11">
     ${s.photo?`<div class="photo"><img alt="Yellow sheet for ${esc(s.vessel||sensorLabel(s,i))}" data-photo="${s.id}">
@@ -735,7 +758,7 @@ function rWires(){
     const twins = S.sensors.filter(x=>x.sku===s.sku).length>1;
     return `
   <div class="card">
-    <div class="sensorhead">${icon(P[s.sku].icon)}<div class="grow"><b>${sensorLabel(s,i)}</b><div class="muted">${esc(s.vessel)||"Vessel not named"}</div></div></div>
+    <div class="sensorhead">${prodPic(P[s.sku])}<div class="grow"><b>${sensorLabel(s,i)}</b><div class="muted">${esc(s.vessel)||"Vessel not named"}</div></div></div>
     ${s.wiresFromDrawing?`<div class="callout info" style="margin:10px 0">Sensor wire colors pre-filled from the BinMaster CNCR Modbus drawing.</div>`
       :`<div class="callout" style="margin:10px 0">Enter this sensor's wire colors from the yellow sheet.</div>`}
     <label class="f">Wire from sensor to ${dest}</label>
