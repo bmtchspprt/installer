@@ -1,4 +1,4 @@
-<!-- Version 9 — BST Installer App -->
+<!-- Version 10 — BST Installer App -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -146,13 +146,25 @@ td.thumb{width:62px;padding:4px 6px 4px 0}
 /* version tag on the first screen (cache check) */
 .ver{display:inline-block;background:#14202e;color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:3px 10px;margin-bottom:8px}
 /* wire colour rows */
-.role{display:grid;grid-template-columns:1fr 28px 1.2fr;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.role{display:grid;grid-template-columns:1.25fr 28px 1.2fr;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
 .role:last-of-type{border-bottom:0}
 .role b{font-size:15px}
 .role select.unset{border-color:var(--accent);background:#fff7ec}
 .swatch.none{background:repeating-linear-gradient(45deg,#fff,#fff 4px,#e3e6ea 4px,#e3e6ea 8px)}
 /* device terminal figures */
 .devfig svg{display:block;width:100%;height:auto;margin:6px 0}
+/* wire IDs + key */
+.wid{display:inline-block;min-width:34px;text-align:center;font:800 11px/1 ui-monospace,Menlo,Consolas,monospace;background:#14202e;color:#fff;border-radius:6px;padding:4px 5px;margin-right:6px;vertical-align:1px}
+.wirekey{position:sticky;bottom:calc(84px + var(--safe-b));z-index:15;margin-top:14px;background:#fff;border:2px solid var(--ink);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.18)}
+.wirekey summary{list-style:none;cursor:pointer;padding:11px 14px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.wirekey summary::-webkit-details-marker{display:none}
+.wirekey summary::after{content:"▴ open";font-weight:700;color:var(--mute);font-size:13px}
+.wirekey[open] summary::after{content:"▾ close"}
+.wirekey .rows{padding:0 14px 12px;max-height:46vh;overflow:auto}
+.wirekey .kr{display:grid;grid-template-columns:56px 1fr;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.wirekey .kc{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:14px}
+.wirekey .kc span{display:inline-flex;align-items:center;gap:5px}
+.wirekey .km{grid-column:2;color:var(--mute);font-size:12.5px;margin-top:-4px}
 /* step-by-step walkthrough */
 .walk{position:fixed;inset:0;z-index:80;background:#f4f6f9;display:flex;flex-direction:column}
 .walkbar{background:var(--ink);color:#fff;display:flex;gap:10px;align-items:center;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
@@ -367,14 +379,14 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "sb_publishable_nEnd0eDrbX1AopNnLEl5KA_WURSl0qw",     // "anon public" key (eyJ…) OR "publishable" key (sb_publishable_…). NEVER the service_role / secret key.
   SETUP_LINKS: {
     cncr: "https://binmastercody.github.io/cncr-setup/",
-    ncr:  "https://bmtchspprt.github.io/radar-setup/index.html",
+    ncr:  "BinDisc-NCR-86.pdf",   // PDF in this repo (opens in the phone's PDF viewer)
     bintrac: "",   // not available yet
     smartbob: ""   // not available yet
   },
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "9"
+  APP_VERSION: "10"
 };
 
 /* =========================================================
@@ -456,6 +468,12 @@ const SKU_ROLES = { cncr_modbus:"modbus4", ncr_modbus:"modbus4", smartbob:"modbu
 /* BinMaster standard Modbus colours (LTX Modbus sensor drawing) — offered as a one-tap shortcut only */
 const STD_COLORS = { modbus4:{pwr:"brown",gnd:"blue",rs_a:"black",rs_b:"white"} };
 const sensorRoles = sku => ROLE_SETS[SKU_ROLES[sku]]||[];
+/* Short wire IDs shown on the drawings and in the wire key */
+const WIRE_ID = {pwr:"+P", gnd:"−G", rs_a:"485+", rs_b:"485−", exc_p:"E+", exc_m:"E−", sig_p:"S+", sig_m:"S−"};
+const WIRE_ID_MEANING = {"+P":"Power (+)", "−G":"Ground (−)", "485+":"RS-485 + (A)", "485−":"RS-485 − (B)",
+  "E+":"Excitation +", "E−":"Excitation −", "S+":"Signal +", "S−":"Signal −", "L":"AC line (hot)", "N":"AC neutral"};
+const wireIdOf = p => WIRE_ID[p]||p;
+const wireId = w => w.purpose==="ac" ? w.fk : wireIdOf(w.purpose);
 const roleLabel = r => (PUR[r]||{}).label||r;
 
 /* =========================================================
@@ -661,8 +679,8 @@ function rStart(){
     <input id="f_email" type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" data-job="installerEmail" value="${esc(S.job.installerEmail)}" placeholder="you@company.com">
     <label class="f" for="f_customer">Company</label>
     <input id="f_customer" type="text" name="organization" autocomplete="organization" list="dl_customer" data-job="customer" value="${esc(S.job.customer)}" placeholder="e.g. Smith Grain Co.">${dl("customer")}
-    <label class="f" for="f_site">Site</label>
-    <input id="f_site" type="text" name="site" list="dl_site" data-job="site" value="${esc(S.job.site)}" placeholder="e.g. North elevator">${dl("site")}
+    <label class="f" for="f_site">Site (street address)</label>
+    <input id="f_site" type="text" name="street-address" autocomplete="street-address" list="dl_site" data-job="site" value="${esc(S.job.site)}" placeholder="Street, city, state">${dl("site")}
   </form>
   ${S.sensors.length||Object.keys(S.qty).length?`<button class="btn ghost sm noprint" id="resetBtn">Start a new install (clears this one)</button>`:""}`;
 }
@@ -683,8 +701,8 @@ function rOrder(){
   const f = SENSOR_ROW.find(x=>x.fam===S.pick) || SENSOR_ROW[0];
   const one = f.skus.length===1;
   return `
-  <h2>Tap what's on the packing list</h2>
-  <p class="sub">Tap a sensor, then set how many of each protocol.</p>
+  <h2>Tap a sensor, then quantity and protocol</h2>
+  <p class="sub">Match the packing list in the clear envelope.</p>
   <div class="grouphdr">Sensors</div>
   <div class="tiles t4">${SENSOR_ROW.map(x=>`<div class="tile ${famQty(x)?'on':''} ${x.fam===f.fam?'pick':''}" data-pick="${x.fam}" role="button" aria-pressed="${x.fam===f.fam}">
       <span class="badge">×${famQty(x)}</span>${famPic(x)}<div class="nm">${x.name}</div></div>`).join("")}</div>
@@ -727,7 +745,7 @@ function rUnbox(){
   if(!S.sensors.length) return noSensors();
   return `
   <h2>Open the boxes</h2>
-  <div class="callout"><b>Yellow sheets:</b> snap a photo of each sensor's yellow sheet. It's saved with that sensor and its vessel name, and goes in your email recap.</div>
+  <div class="callout"><b>Photo of yellow sheet and/or sensor serial and PIN:</b> snap one for each sensor. It's saved with that sensor and its vessel name, and goes in your email recap.</div>
   ${S.sensors.map((s,i)=>`
   <div class="card">
     <div class="sensorhead">${prodPic(P[s.sku])}<div class="grow"><b>${sensorLabel(s,i)}</b></div>${s.photo?'<span class="pill ok">Photo ✓</span>':""}</div>
@@ -737,7 +755,7 @@ function rUnbox(){
         <div class="cap">${esc(s.vessel||"Vessel not named")} · ${P[s.sku].name} ${P[s.sku].variant}</div></div>
       <div class="photo acts"><label class="btn ghost sm" style="cursor:pointer">Retake<input type="file" accept="image/*" capture="environment" data-photoin="${s.id}" hidden></label>
         <button class="btn ghost sm" data-photodel="${s.id}">Remove</button></div>`
-     :`<label class="photobtn">📷 Photo of yellow sheet<input type="file" accept="image/*" capture="environment" data-photoin="${s.id}" hidden></label>`}
+     :`<label class="photobtn">📷 Photo of yellow sheet and/or serial &amp; PIN<input type="file" accept="image/*" capture="environment" data-photoin="${s.id}" hidden></label>`}
   </div>`).join("")}
   <datalist id="dl_vessel">${(recent().vessel||[]).map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
 }
@@ -754,32 +772,37 @@ function dupWarn(colors){
   const seen={}, d=[]; colors.filter(Boolean).forEach(c=>{ if(seen[c]) d.push(c); seen[c]=1; });
   return d.length?`<div class="callout warn" style="margin:8px 0 0">The <b>${[...new Set(d)].join(", ")}</b> colour is used for two wires. Each wire needs its own colour.</div>`:"";
 }
-function cableCards(){
-  const out=[], ms=S.sensors.some(s=>["modbus4"].includes(SKU_ROLES[s.sku]));
-  if(has("psdc")) out.push(["psdc", `PSDC power cable`, `PSDC to ${has("tc100")?"TC-100":"LTX"}`, ["pwr","gnd"]]);
-  if(has("tc100") && has("ltx")) out.push(["ltx", "LTX cable", "TC-100 to LTX", ms?["pwr","gnd","rs_a","rs_b"]:["pwr","gnd"]]);
-  return out.map(([k,t,sub,roles])=>`<div class="card"><div class="sensorhead">${partPic(k==="psdc"?"psdc":ltxPartId())||""}<div class="grow"><b>${t}</b><div class="muted">${sub}</div></div></div>
-    ${roles.map(r=>roleRow(roleLabel(r), S.cables[k][r], `data-cable="${k}" data-role="${r}"`)).join("")}
+function cableCard(k,title,sub,roles,pic){
+  return `<div class="card"><div class="sensorhead">${pic||""}<div class="grow"><b>${title}</b><div class="muted">${sub}</div></div></div>
+    ${roles.map(r=>roleRow(`<span class="wid">${wireIdOf(r)}</span>${roleLabel(r)}`, S.cables[k][r], `data-cable="${k}" data-role="${r}"`)).join("")}
     ${roles.length===4?`<button class="btn ghost sm" style="margin-top:8px" data-stdcable="${k}">Use BinMaster standard colours</button>`:""}
-    ${dupWarn(roles.map(r=>S.cables[k][r]))}</div>`).join("");
+    ${dupWarn(roles.map(r=>S.cables[k][r]))}</div>`;
+}
+function cableCards(){
+  const ms=S.sensors.some(s=>SKU_ROLES[s.sku]==="modbus4"), tc=has("tc100"), ltx=has("ltx"), psdc=has("psdc");
+  let h="";
+  if(tc && psdc) h+=cableCard("psdc","TC-100 power cable","PSDC to TC-100",["pwr","gnd"],partPic("tc-100"));
+  if(tc && ltx)  h+=cableCard("ltx","LTX cable","TC-100 to LTX",ms?["pwr","gnd","rs_a","rs_b"]:["pwr","gnd"],partPic(ltxPartId()));
+  if(!tc && psdc) h+=cableCard("psdc","PSDC power cable",ltx?"PSDC to LTX":"PSDC output",["pwr","gnd"],partPic("psdc"));
+  return h;
 }
 function rWires(){
   if(!S.sensors.length && !has("psdc")) return noSensors();
   return `
   <h2>Identify the wires</h2>
   <p class="sub">Pick the colour of each wire as it reaches the terminals. The drawings on the next screen use these colours.</p>
-  ${cableCards()}
   ${S.sensors.map((s,i)=>{
     const roles=sensorRoles(s.sku), set=SKU_ROLES[s.sku], twins=S.sensors.filter(x=>x.sku===s.sku).length>1;
     return `<div class="card">
     <div class="sensorhead">${prodPic(P[s.sku])}<div class="grow"><b>${sensorLabel(s,i)}</b><div class="muted">${esc(s.vessel)||"Vessel not named"}</div></div></div>
-    ${s.wires.map((w,wi)=>roleRow(roleLabel(w.purpose)+" wire", w.color, `data-wire="${s.id}" data-wi="${wi}" data-k="color"`)).join("")}
+    ${s.wires.map((w,wi)=>roleRow(`<span class="wid">${wireIdOf(w.purpose)}</span>${roleLabel(w.purpose)}`, w.color, `data-wire="${s.id}" data-wi="${wi}" data-k="color"`)).join("")}
     <div class="row" style="flex-wrap:wrap;margin-top:8px">
       ${STD_COLORS[set]?`<button class="btn ghost sm" data-std="${s.id}">Use BinMaster standard colours</button>`:""}
       ${twins?`<button class="btn ghost sm" data-copyall="${s.id}">Same colours for all ${P[s.sku].name} ${P[s.sku].variant}</button>`:""}
     </div>
     ${dupWarn(s.wires.map(w=>w.color))}
-  </div>`}).join("")}`;
+  </div>`}).join("")}
+  ${cableCards()}`;
 }
 /* ---------- Connections model (drives bench, runs, diagram, email) ---------- */
 /* TC-100 banks, as on the real box: black · red · blue · gray */
@@ -925,6 +948,10 @@ function lead(x1,y1,x2,y2,c){
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0008" stroke-width="7.4" stroke-linecap="round"/>
           <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${st}" stroke-width="5" stroke-linecap="round"/>`;
 }
+/* small wire-ID tag; drawn after the leads so it sits on top */
+function tag(x,y,id){ const w=id.length*6.6+10;
+  return `<rect x="${x-w/2}" y="${y-9}" width="${w}" height="17" rx="5" fill="#14202e" stroke="#fff" stroke-width="1.5"/>
+    <text x="${x}" y="${y+3.6}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#fff" font-family="ui-monospace,Menlo,Consolas,monospace">${id}</text>`; }
 const dot=(x,y,c)=>`<circle cx="${x}" cy="${y}" r="6" fill="${wireStroke(c)||"#fff"}" stroke="#14202e" stroke-width="2" ${c?"":'stroke-dasharray="2 2"'}/>`;
 const halo=(x,y,t,o="")=>`<text x="${x}" y="${y}" text-anchor="middle" font-size="11" font-weight="800" stroke="#fff" stroke-width="4" paint-order="stroke" ${o}>${t}</text>`;
 const scr=(cx,cy,r=8)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#333" stroke-width="1.6"/><path d="M${cx-r*.55},${cy}h${r*1.1}M${cx},${cy-r*.55}v${r*1.1}" stroke="#333" stroke-width="1.6"/>`;
@@ -945,12 +972,13 @@ function figPSDC(T){
     <text x="${P_.N[0]}" y="${y+h-36}" text-anchor="middle" font-size="12" font-weight="800">N</text>
     <text x="${P_.L[0]}" y="${y+h-36}" text-anchor="middle" font-size="12" font-weight="800">L</text>
     ${scr(...P_.N)}${scr(...P_.L)}`;
-  ["mV","pV"].forEach(k=>{ if(T[k]) g+=lead(P_[k][0],P_[k][1],P_[k][0],6,T[k].color)+dot(...P_[k],T[k].color); });
-  ["N","L"].forEach(k=>{ if(T[k]) g+=lead(P_[k][0],P_[k][1],P_[k][0],H-6,T[k].color)+dot(...P_[k],T[k].color); });
-  return fsvg(360,H,g);
+  let tg="";
+  ["mV","pV"].forEach((k,i)=>{ if(T[k]){ g+=lead(P_[k][0],P_[k][1],P_[k][0],6,T[k].color)+dot(...P_[k],T[k].color); tg+=tag(P_[k][0],22+i*20,T[k].id); } });
+  ["N","L"].forEach((k,i)=>{ if(T[k]){ g+=lead(P_[k][0],P_[k][1],P_[k][0],H-6,T[k].color)+dot(...P_[k],T[k].color); tg+=tag(P_[k][0],H-22-i*20,T[k].id); } });
+  return fsvg(360,H,g+tg);
 }
 function figTC(T){
-  const x=28,y=64,w=320,h=124,bw=80,H=y+h+60;
+  const x=28,y=72,w=320,h=124,bw=80,H=y+h+72;
   const banks=[["g","#2f3133","#fff","Ground"],["o","#c62828","#fff","Power"],["b","#1f5fd6","#fff","485+"],["w","#c9cdd1","#14202e","485−"]];
   const pos=(b,row,i)=>[x+b*bw+bw*(0.2+0.3*i), row==="T"?y+16:y+h-16];
   let g=`<text x="${x-6}" y="${y+20}" text-anchor="end" font-size="9" font-weight="700" fill="#6b7a8c">top</text><text x="${x-6}" y="${y+h-12}" text-anchor="end" font-size="9" font-weight="700" fill="#6b7a8c">bot</text>`;
@@ -963,14 +991,16 @@ function figTC(T){
     g+=`<text x="${bx+bw/2}" y="${y+h/2+5}" text-anchor="middle" font-size="12.5" font-weight="800" fill="${txt}">${name}</text>`;
   });
   g+=`<line x1="${x}" y1="${y+h/2-14}" x2="${x+w}" y2="${y+h/2-14}" stroke="#111" stroke-width="1.2" opacity=".6"/>`;
+  let tg="";
   Object.entries(T).forEach(([k,t])=>{ const [b,slot]=k.split(":"); const bi="gobw".indexOf(b); if(bi<0||!slot) return;
-    const [px,py]=pos(bi,slot[0],+slot[1]-1);
-    g+= slot[0]==="T" ? lead(px,py,px,6,t.color) : lead(px,py,px,H-34,t.color);
-    g+=dot(px,py,t.color); });
-  return fsvg(356,H,g);
+    const si=+slot[1]-1, [px,py]=pos(bi,slot[0],si);
+    g+= slot[0]==="T" ? lead(px,py,px,6,t.color) : lead(px,py,px,H-6,t.color);
+    g+=dot(px,py,t.color);
+    tg+= slot[0]==="T" ? tag(px, 14+si*19, t.id) : tag(px, H-14-(2-si)*19, t.id); });
+  return fsvg(356,H,g+tg);
 }
 function figLTX(T, model){
-  const H = model==="modbus" ? 214 : 410, pw=21;
+  const H = model==="modbus" ? 214 : 430, pw=21;
   const blocks=[["pwr",["DC In","GND","SHLD"],"Power"],["r1",["DC Out","B−","A+","GND","SHLD"],"RS-485 1"],["r2",["DC Out","B−","A+","GND","SHLD"],"RS-485 2"]];
   let g=`<rect x="8" y="58" width="344" height="${H-66}" rx="10" fill="#c62828" stroke="#7f1212" stroke-width="2"/>
     <text x="344" y="80" text-anchor="end" font-size="15" font-weight="800" fill="#fff">LTX-100</text>`;
@@ -996,10 +1026,11 @@ function figLTX(T, model){
             <rect x="${tx+4}" y="${ty+19}" width="${tw-8}" height="11" rx="1" fill="#2a2a2a"/>`; });
     });
   }
-  Object.entries(T).forEach(([k,t])=>{ const p=pos[k]; if(!p) return;
-    if(k.startsWith("c")) g+=lead(p[0],p[1],p[0],H-6,t.color)+dot(p[0],p[1]-4,t.color);
-    else g+=lead(p[0],p[1],p[0],8,t.color)+dot(p[0],p[1]+4,t.color); });
-  return fsvg(360,H,g);
+  let tg="", n=0;
+  Object.entries(T).forEach(([k,t])=>{ const p=pos[k]; if(!p) return; const st=(n++)%2;
+    if(k.startsWith("c")){ g+=lead(p[0],p[1],p[0],H-6,t.color)+dot(p[0],p[1]-4,t.color); tg+=tag(p[0],H-16-st*20,t.id); }
+    else { g+=lead(p[0],p[1],p[0],8,t.color)+dot(p[0],p[1]+4,t.color); tg+=tag(p[0],20+st*20,t.id); } });
+  return fsvg(360,H,g+tg);
 }
 function figNCR(T, model){
   const x=20,y=16,w=320,h=190,top=y+h*0.48,H=300, tb=y+148;
@@ -1012,9 +1043,9 @@ function figNCR(T, model){
     <text x="${x+155}" y="${y+146}" text-anchor="middle" font-size="9">off on</text>`;
   nums.forEach(n=>{ const cx=tx[n]; g+=`<rect x="${cx-15}" y="${y+100}" width="30" height="48" fill="#fff" stroke="#14202e" stroke-width="1.8"/>
       <rect x="${cx-8}" y="${y+106}" width="16" height="16" fill="#fff" stroke="#14202e"/><rect x="${cx-9}" y="${y+134}" width="18" height="9" rx="3" fill="#fff" stroke="#14202e"/>`; });
-  nums.forEach(n=>{ const t=T[String(n)]; if(t) g+=lead(tx[n],tb,tx[n],H-6,t.color)+dot(tx[n],tb,t.color); });
+  let tg=""; nums.forEach((n,i)=>{ const t=T[String(n)]; if(t){ g+=lead(tx[n],tb,tx[n],H-6,t.color)+dot(tx[n],tb,t.color); tg+=tag(tx[n],H-22-(i%2)*20,t.id); } });
   [[1,"(+)1"],[2,"2(−)"],[3,"3"],[4,"4"],[5,"5"]].filter(([n])=>nums.includes(n)).forEach(([n,l])=>g+=halo(tx[n],y+170,l));
-  return fsvg(360,H,g);
+  return fsvg(360,H,g+tg);
 }
 function figPigtail(T, roles, name){
   const n=roles.length, H=250; let g=`<rect x="150" y="6" width="60" height="78" rx="10" fill="#6b7277" stroke="#3b4146"/>
@@ -1023,14 +1054,14 @@ function figPigtail(T, roles, name){
   roles.forEach((r,i)=>{ const ex=n===1?180:60+i*(240/(n-1)), t=T[r]||{color:""};
     g+=`<path d="M${170+i*(20/Math.max(1,n-1))},84 C${170+i*(20/Math.max(1,n-1))},140 ${ex},130 ${ex},176" fill="none" stroke="#0008" stroke-width="7.4" stroke-linecap="round"/>
         <path d="M${170+i*(20/Math.max(1,n-1))},84 C${170+i*(20/Math.max(1,n-1))},140 ${ex},130 ${ex},176" fill="none" stroke="${wireStroke(t.color)||"#cfd6de"}" stroke-width="5" stroke-linecap="round"/>`;
-    g+=dot(ex,180,t.color)+halo(ex,204,roleLabel(r))+`<text x="${ex}" y="220" text-anchor="middle" font-size="10" fill="#3a4a5c">${t.color||"not set"}</text>`; });
+    g+=dot(ex,180,t.color)+tag(ex,204,wireIdOf(r))+`<text x="${ex}" y="226" text-anchor="middle" font-size="10" fill="#3a4a5c">${t.color||"not set"}</text>`; });
   return fsvg(360,H,g);
 }
 function devTerms(){
   const D={}; const add=(dev,key,info)=>{ if(!dev||!key) return; (D[dev]=D[dev]||{})[key]=info; };
   connections().forEach(c=>c.wires.forEach(w=>{
-    add(c.fromDev,w.fk,{color:w.color,lbl:w.a,to:`${c.to} · ${w.b}`});
-    add(c.toDev,w.tk,{color:w.color,lbl:w.b,to:`${c.from} · ${w.a}`}); }));
+    add(c.fromDev,w.fk,{color:w.color,lbl:w.a,to:`${c.to} · ${w.b}`,id:wireId(w)});
+    add(c.toDev,w.tk,{color:w.color,lbl:w.b,to:`${c.from} · ${w.a}`,id:wireId(w)}); }));
   return D;
 }
 function deviceCards(){
@@ -1050,12 +1081,24 @@ function deviceCards(){
     const rows=Object.entries(T);
     return `<div class="card devfig"><h3>${title}${sub?` <span class="muted" style="font-weight:400">· ${sub}</span>`:""}</h3>${fig}
       ${rows.length?`<table class="t"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
-      ${rows.map(([k,t])=>`<tr><td>${esc(t.lbl)}</td><td style="white-space:nowrap">${t.color?sw(t.color)+" "+esc(t.color):'<span class="muted">not set</span>'}</td><td>${esc(t.to)}</td></tr>`).join("")}</tbody></table>`
+      ${rows.map(([k,t])=>`<tr><td><span class="wid">${esc(t.id||"")}</span>${esc(t.lbl)}</td><td style="white-space:nowrap">${t.color?sw(t.color)+" "+esc(t.color):'<span class="muted">not set</span>'}</td><td>${esc(t.to)}</td></tr>`).join("")}</tbody></table>`
       :`<p class="muted">No wires land here yet.</p>`}</div>`;
   }).join("");
 }
 
 /* ---------- Step: power & bench setup ---------- */
+/* One key for the whole system: each wire ID and every colour used for it */
+function wireKey(){
+  const K={}, order=["+P","−G","485+","485−","E+","E−","S+","S−","L","N"];
+  connections().forEach(c=>c.wires.forEach(w=>{ const id=wireId(w); (K[id]=K[id]||new Set()).add(w.color||""); }));
+  const ids=Object.keys(K).sort((a,b)=>order.indexOf(a)-order.indexOf(b));
+  if(!ids.length) return "";
+  return `<details class="wirekey"><summary>Wire key</summary><div class="rows">
+    ${ids.map(id=>`<div class="kr"><span class="wid">${id}</span><div class="kc">${[...K[id]].map(c=>c?`<span>${sw(c)}${c}</span>`:`<span class="muted">not set</span>`).join("")}</div>
+      <div class="km">${WIRE_ID_MEANING[id]||""}</div></div>`).join("")}
+  </div></details>`;
+}
+
 function rBench(){
   const chk=(k,t)=>`<label class="check"><input type="checkbox" data-check="${k}" ${S.checks[k]?"checked":""}><span>${t}</span></label>`;
   const dev = deviceLandings();
@@ -1063,14 +1106,15 @@ function rBench(){
   <h2>Power & bench setup</h2>
   <div class="callout"><b>Bench it first.</b> Lay every part out on a bench, wire it with short leads, and get every sensor reading <b>before</b> anything goes up on the bin.</div>
   <div class="card"><h3>Safety</h3>${chk("pw_off","AC power is OFF and locked out while you wire.")}</div>
-  <details class="card"><summary><b>Where wires land</b><span class="muted">tap to open</span></summary>
-    ${dev.map(([name,rows])=>`<h4 style="margin:12px 0 4px">${esc(name)}</h4><table class="t"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
+  <details class="card"><summary><b>System overview &amp; where wires land</b><span class="muted">tap to open</span></summary>
+    <div class="diagram" style="margin-top:10px">${wireDiagramSVG()}</div>${LEGEND}
+    ${dev.map(([name,rows])=>`<h4 style="margin:14px 0 4px">${esc(name)}</h4><table class="t"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r.t)}</td><td style="white-space:nowrap">${r.color?sw(r.color)+" "+esc(r.color):'<span class="muted">not set</span>'}</td><td>${esc(r.to)}</td></tr>`).join("")}</tbody></table>`).join("")
       || `<p class="muted">Add items on the order step to see landings.</p>`}
   </details>
-  <div class="card"><h3>Whole system overview</h3><div class="diagram">${wireDiagramSVG()}</div>${LEGEND}</div>
   <h3 style="margin:18px 2px 8px">Terminals on each device</h3>
-  ${deviceCards() || `<div class="callout warn">Add items on the order step to see the terminals.</div>`}`;
+  ${deviceCards() || `<div class="callout warn">Add items on the order step to see the terminals.</div>`}
+  ${wireKey()}`;
 }
 
 /* ---------- Step: configure sensors ---------- */
@@ -1090,7 +1134,7 @@ function rConfigure(){
   ${(foundPages||[]).length?`<div class="card"><h3>Setup tools</h3>${foundPages.map(p=>`<button class="linkbtn" style="width:100%" data-openpage="${p.file}" data-name="${esc(p.name)}">Open ${esc(p.name)} <span>›</span></button>`).join("")}</div>`:""}
   ${fams.map(f=>{ const url=CONFIG.SETUP_LINKS[f], mine=S.sensors.filter(s=>P[s.sku].family===f);
     return `<div class="card"><div class="sensorhead">${famPic(SENSOR_ROW.find(r=>r.fam===f)||{icon:"radar"})}<div class="grow"><b>${NAMES[f]}</b></div></div>
-      ${url?`<button class="linkbtn" style="width:100%" data-opensetup="${f}">Open ${NAMES[f]} setup guide <span>›</span></button>`
+      ${url?`<button class="linkbtn" style="width:100%" data-opensetup="${f}">Open ${NAMES[f]} setup guide${/\.pdf$/i.test(url)?" (PDF)":""} <span>›</span></button>`
            :`<div class="linkbtn disabled">${NAMES[f]} setup guide coming soon</div>`}
       ${mine.map(s=>`<label class="check"><input type="checkbox" data-sensor="${s.id}" data-k="configured" ${s.configured?"checked":""}><span>Configured: <b>${esc(s.vessel)||sensorLabel(s,S.sensors.indexOf(s))}</b></span></label>`).join("")}
     </div>`;}).join("") || `<div class="callout warn">No sensors on this order.</div>`}
@@ -1369,8 +1413,8 @@ table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;p
 <div><b>Installer:</b> ${esc(j.installerEmail)||"—"}</div><div><b>Install time:</b> ${S.bench.seconds?fmtTime(S.bench.seconds):"—"}</div></div>
 <div class="status ${ok?"ok":"open"}">${ok?"✓ Verified: every check is complete.":`Open items: ${v.filter(x=>!x[1]).length} check${v.filter(x=>!x[1]).length>1?"s":""} not yet complete.`}</div>
 <h2>Verification</h2><table>${v.map(([t,y])=>`<tr><td style="width:28px;font-weight:900;color:${y?"#1f7a44":"#8a5a00"}">${y?"✓":"○"}</td><td>${t}</td></tr>`).join("")}</table>
-<h2>Sensors</h2><table><thead><tr><th>#</th><th>Sensor</th><th>Vessel</th><th>Configured</th><th>Yellow sheet</th></tr></thead><tbody>
-${S.sensors.map((s,i)=>`<tr><td>${i+1}</td><td>${P[s.sku].name} ${P[s.sku].variant}</td><td>${esc(s.vessel)||"—"}</td><td>${s.configured?"✓":"—"}</td><td>${photos[s.id]?`<img class="photo" src="${photos[s.id]}" alt="Yellow sheet">`:"—"}</td></tr>`).join("")||'<tr><td colspan="5">No sensors</td></tr>'}</tbody></table>
+<h2>Sensors</h2><table><thead><tr><th>#</th><th>Sensor</th><th>Vessel</th><th>Configured</th><th>Photo</th></tr></thead><tbody>
+${S.sensors.map((s,i)=>`<tr><td>${i+1}</td><td>${P[s.sku].name} ${P[s.sku].variant}</td><td>${esc(s.vessel)||"—"}</td><td>${s.configured?"✓":"—"}</td><td>${photos[s.id]?`<img class="photo" src="${photos[s.id]}" alt="Yellow sheet / serial and PIN">`:"—"}</td></tr>`).join("")||'<tr><td colspan="5">No sensors</td></tr>'}</tbody></table>
 <h2>Equipment</h2><div class="parts">${items.map(p=>`<div class="part">${prodPic(p)}<div><b>${q(p.sku)}×</b> ${p.name} ${p.variant}</div></div>`).join("")}</div>
 <h2>Wiring</h2>
 ${C.filter(c=>c.wires.length).map(c=>`<p style="margin:10px 0 4px"><b>${esc(c.title)}</b></p><table>${c.wires.map(w=>`<tr><td>${esc(w.a)}</td><td style="white-space:nowrap">${w.color?`<span class="sw" style="background:${COLORS[w.color]}"></span>${esc(w.color)}`:"not set"}</td><td>${esc(w.b)}</td></tr>`).join("")}</table>`).join("")}
@@ -1447,6 +1491,7 @@ function doPrint(){ track("print_guide",{sensors:S.sensors.length}); const m=S.m
 /* ---------- In-app setup tool ---------- */
 function openSetup(f){
   const url=CONFIG.SETUP_LINKS[f]; if(!url) return;
+  if(/\.pdf($|[?#])/i.test(url)){ window.open(url,"_blank","noopener"); track("setup_open",{family:f,pdf:true}); return; }
   document.getElementById("sheetTitle").textContent=NAMES[f]+" setup";
   document.getElementById("sheetExt").href=url;
   document.getElementById("sheetFrame").src=url;
