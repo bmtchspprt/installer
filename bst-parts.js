@@ -1,11 +1,11 @@
-/* Version 5 — BST default parts library
+/* Version 6 — BST default parts library
    Drawings of every BST part, used by the installer app, the wiring guide and the Quick Start Guide.
    Each function returns SVG markup. Wrap it in an <svg> with the viewBox from BST_PARTS below,
    and include DEFS once per <svg> (it holds the shading).
    Safe to load next to index.html: it defines no names the app also uses.
 
    Parts:  NCR Modbus · NCR HART / 4-20 · TC-100 · LTX Modbus · LTX HART · LTX 4-20 mA · PSDC
-           BinTrac load cell mount · BinTrac weight indicator · BinTrac summing box · BinCloud
+           BinTrac load cell mount · BinTrac weight indicator · BinTrac summing box · SmartBob II · BinCloud
 */
 
 function screw(cx,cy,r=8){ return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#333" stroke-width="1.6"/>
@@ -319,6 +319,32 @@ function summingBox(x,y,s=1,o={}){
   return g+`</g>`;
 }
 
+/* ---- SmartBob II: black housing with handle, red label, threaded mount, plumb bob on its cable ---- */
+function smartBob(x,y,s=1){
+  const scr=(cx,cy)=>`<circle cx="${cx}" cy="${cy}" r="4" fill="#3a3a3a" stroke="#111"/><path d="M${cx-2.2},${cy}h4.4M${cx},${cy-2.2}v4.4" stroke="#777" stroke-width="1"/>`;
+  return `<g transform="translate(${x},${y}) scale(${s})">
+    <path d="M58,40 Q58,4 120,4 Q182,4 182,40" fill="none" stroke="#151515" stroke-width="14" stroke-linecap="round"/>
+    <rect x="-8" y="104" width="12" height="16" rx="2" fill="#b08a2e" stroke="#5c4510"/>
+    <rect x="0" y="34" width="240" height="158" rx="76" fill="#1d1d1d" stroke="#000" stroke-width="2"/>
+    <rect x="6" y="40" width="228" height="146" rx="70" fill="none" stroke="#333" stroke-width="2"/>
+    ${[[52,48],[188,48],[18,112],[222,112],[52,178],[188,178]].map(([cx,cy])=>scr(cx,cy)).join("")}
+    <rect x="34" y="62" width="172" height="100" rx="3" fill="#d42020" stroke="#7a0c0c" stroke-width="1.5"/>
+    <text x="104" y="92" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="Georgia,serif">Smart<tspan font-weight="900" font-family="system-ui,Arial">Bob</tspan></text>
+    <text x="164" y="92" font-size="19" font-weight="700" fill="#fff" font-family="Georgia,serif">II</text>
+    ${[102,110,118,126,134,142].map((ly,i)=>`<rect x="${44+(i%2)*6}" y="${ly}" width="${i===2?150:120-(i%3)*18}" height="2.4" rx="1" fill="#fff" opacity=".75"/>`).join("")}
+    <text x="120" y="156" text-anchor="middle" font-size="8" font-weight="900" fill="#fff" font-style="italic">BINMASTER</text>
+    <rect x="100" y="190" width="40" height="44" fill="#1b1b1b" stroke="#000"/>
+    <rect x="90" y="232" width="60" height="10" rx="2" fill="#262626" stroke="#000"/>
+    <rect x="94" y="242" width="52" height="26" fill="#222" stroke="#000"/>
+    ${[246,251,256,261].map(ty=>`<line x1="94" y1="${ty}" x2="146" y2="${ty}" stroke="#444" stroke-width="1.2"/>`).join("")}
+    <rect x="106" y="268" width="28" height="20" fill="#9ea4aa" stroke="#555"/>
+    <line x1="120" y1="288" x2="120" y2="312" stroke="#777" stroke-width="2"/>
+    <circle cx="120" cy="315" r="3.5" fill="none" stroke="#888" stroke-width="2"/>
+    <path d="M114,318 h12 v8 l10,22 l-16,46 l-16,-46 l10,-22 z" fill="url(#gSteel)" stroke="#5f656b" stroke-width="1.2"/>
+    <path d="M104,348 h32" stroke="#8d949b" stroke-width="1.2"/>
+  </g>`;
+}
+
 function cloud(x,y,w=120){ const s=w/120;
   return `<path transform="translate(${x},${y}) scale(${s})" d="M30 70 Q8 70 8 52 Q8 34 28 33 Q32 12 56 12 Q78 12 84 30 Q112 28 112 52 Q112 70 92 70 Z" fill="#e8f1ff" stroke="#1565d8" stroke-width="2.5"/>
           <text x="${x+60*s}" y="${y+52*s}" text-anchor="middle" font-size="${14*s}" font-weight="800" fill="#1565d8">BinCloud</text>`; }
@@ -335,6 +361,7 @@ const BST_PARTS = {
   "bintrac-mount":     {name:"BinTrac load cell mount",  viewBox:"-20 -60 270 330", draw:()=>bintracMount(0,0,1)},
   "bintrac-indicator": {name:"BinTrac weight indicator", viewBox:"-50 -10 400 360", draw:()=>bintracIndicator(0,0,1)},
   "bintrac-summing":   {name:"BinTrac summing box",      viewBox:"-52 -8 404 312",  draw:()=>summingBox(0,0,1)},
+  "smartbob":          {name:"SmartBob II",              viewBox:"-20 -8 280 410",  draw:()=>smartBob(0,0,1)},
   "bincloud":          {name:"BinCloud",                 viewBox:"0 0 120 80",      draw:()=>cloud(0,0,120)}
 };
 /* Full standalone SVG for a part, e.g. partSVG("tc-100") */
