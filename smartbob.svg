@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -8 280 410" width="280" height="410" font-family="system-ui,Arial" role="img" aria-label="SmartBob II"><defs>
+  <linearGradient id="gRed" x1="0" x2="1"><stop offset="0" stop-color="#9e1414"/><stop offset=".35" stop-color="#e53935"/><stop offset=".6" stop-color="#d32f2f"/><stop offset="1" stop-color="#8e1212"/></linearGradient>
+  <linearGradient id="gSteel" x1="0" x2="1"><stop offset="0" stop-color="#8d949b"/><stop offset=".4" stop-color="#eef1f4"/><stop offset=".7" stop-color="#c3c8cd"/><stop offset="1" stop-color="#7d848b"/></linearGradient>
+  <linearGradient id="gRedV" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#9e1414"/><stop offset=".35" stop-color="#e53935"/><stop offset=".6" stop-color="#d32f2f"/><stop offset="1" stop-color="#8e1212"/></linearGradient>
+  <linearGradient id="gPipe" x1="0" x2="1"><stop offset="0" stop-color="#2f6fb3"/><stop offset=".45" stop-color="#8fc3ea"/><stop offset=".75" stop-color="#5b9bd5"/><stop offset="1" stop-color="#2c5f99"/></linearGradient>
+  <linearGradient id="gFrame" x1="0" x2="1"><stop offset="0" stop-color="#9aa0a6"/><stop offset="1" stop-color="#868c92"/></linearGradient>
+  <linearGradient id="gFace" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2c4f8f"/><stop offset="1" stop-color="#1b3466"/></linearGradient>
+  <linearGradient id="gAlu" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#d6dade"/><stop offset="1" stop-color="#a9afb5"/></linearGradient>
+  <linearGradient id="gFlange" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e9ecef"/><stop offset="1" stop-color="#b9bfc5"/></linearGradient>
+</defs><g transform="translate(0,0) scale(1)">
+    <path d="M58,40 Q58,4 120,4 Q182,4 182,40" fill="none" stroke="#151515" stroke-width="14" stroke-linecap="round"/>
+    <rect x="-8" y="104" width="12" height="16" rx="2" fill="#b08a2e" stroke="#5c4510"/>
+    <rect x="0" y="34" width="240" height="158" rx="76" fill="#1d1d1d" stroke="#000" stroke-width="2"/>
+    <rect x="6" y="40" width="228" height="146" rx="70" fill="none" stroke="#333" stroke-width="2"/>
+    <circle cx="52" cy="48" r="4" fill="#3a3a3a" stroke="#111"/><path d="M49.8,48h4.4M52,45.8v4.4" stroke="#777" stroke-width="1"/><circle cx="188" cy="48" r="4" fill="#3a3a3a" stroke="#111"/><path d="M185.8,48h4.4M188,45.8v4.4" stroke="#777" stroke-width="1"/><circle cx="18" cy="112" r="4" fill="#3a3a3a" stroke="#111"/><path d="M15.8,112h4.4M18,109.8v4.4" stroke="#777" stroke-width="1"/><circle cx="222" cy="112" r="4" fill="#3a3a3a" stroke="#111"/><path d="M219.8,112h4.4M222,109.8v4.4" stroke="#777" stroke-width="1"/><circle cx="52" cy="178" r="4" fill="#3a3a3a" stroke="#111"/><path d="M49.8,178h4.4M52,175.8v4.4" stroke="#777" stroke-width="1"/><circle cx="188" cy="178" r="4" fill="#3a3a3a" stroke="#111"/><path d="M185.8,178h4.4M188,175.8v4.4" stroke="#777" stroke-width="1"/>
+    <rect x="34" y="62" width="172" height="100" rx="3" fill="#d42020" stroke="#7a0c0c" stroke-width="1.5"/>
+    <text x="104" y="92" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="Georgia,serif">Smart<tspan font-weight="900" font-family="system-ui,Arial">Bob</tspan></text>
+    <text x="164" y="92" font-size="19" font-weight="700" fill="#fff" font-family="Georgia,serif">II</text>
+    <rect x="44" y="102" width="120" height="2.4" rx="1" fill="#fff" opacity=".75"/><rect x="50" y="110" width="102" height="2.4" rx="1" fill="#fff" opacity=".75"/><rect x="44" y="118" width="150" height="2.4" rx="1" fill="#fff" opacity=".75"/><rect x="50" y="126" width="120" height="2.4" rx="1" fill="#fff" opacity=".75"/><rect x="44" y="134" width="102" height="2.4" rx="1" fill="#fff" opacity=".75"/><rect x="50" y="142" width="84" height="2.4" rx="1" fill="#fff" opacity=".75"/>
+    <text x="120" y="156" text-anchor="middle" font-size="8" font-weight="900" fill="#fff" font-style="italic">BINMASTER</text>
+    <rect x="100" y="190" width="40" height="44" fill="#1b1b1b" stroke="#000"/>
+    <rect x="90" y="232" width="60" height="10" rx="2" fill="#262626" stroke="#000"/>
+    <rect x="94" y="242" width="52" height="26" fill="#222" stroke="#000"/>
+    <line x1="94" y1="246" x2="146" y2="246" stroke="#444" stroke-width="1.2"/><line x1="94" y1="251" x2="146" y2="251" stroke="#444" stroke-width="1.2"/><line x1="94" y1="256" x2="146" y2="256" stroke="#444" stroke-width="1.2"/><line x1="94" y1="261" x2="146" y2="261" stroke="#444" stroke-width="1.2"/>
+    <rect x="106" y="268" width="28" height="20" fill="#9ea4aa" stroke="#555"/>
+    <line x1="120" y1="288" x2="120" y2="312" stroke="#777" stroke-width="2"/>
+    <circle cx="120" cy="315" r="3.5" fill="none" stroke="#888" stroke-width="2"/>
+    <path d="M114,318 h12 v8 l10,22 l-16,46 l-16,-46 l10,-22 z" fill="url(#gSteel)" stroke="#5f656b" stroke-width="1.2"/>
+    <path d="M104,348 h32" stroke="#8d949b" stroke-width="1.2"/>
+  </g></svg>
