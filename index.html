@@ -1,4 +1,4 @@
-<!-- Version 8 — BST Installer App -->
+<!-- Version 9 — BST Installer App -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,6 +143,36 @@ body.mode-scroll #guide{display:block}
 table.order td{vertical-align:middle}
 td.thumb{width:62px;padding:4px 6px 4px 0}
 .thumbpic,td.thumb svg{display:block;width:58px;height:46px}
+/* version tag on the first screen (cache check) */
+.ver{display:inline-block;background:#14202e;color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:3px 10px;margin-bottom:8px}
+/* wire colour rows */
+.role{display:grid;grid-template-columns:1fr 28px 1.2fr;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.role:last-of-type{border-bottom:0}
+.role b{font-size:15px}
+.role select.unset{border-color:var(--accent);background:#fff7ec}
+.swatch.none{background:repeating-linear-gradient(45deg,#fff,#fff 4px,#e3e6ea 4px,#e3e6ea 8px)}
+/* device terminal figures */
+.devfig svg{display:block;width:100%;height:auto;margin:6px 0}
+/* step-by-step walkthrough */
+.walk{position:fixed;inset:0;z-index:80;background:#f4f6f9;display:flex;flex-direction:column}
+.walkbar{background:var(--ink);color:#fff;display:flex;gap:10px;align-items:center;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px))}
+.walkbar b{flex:1}
+.walkbar .btn,.sheethead .btn{color:#14202e;background:#fff}
+.partgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}.partgrid div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center;font-size:12px}.partgrid svg{width:100%;height:60px}
+.walkscroll{flex:1;min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
+.slide{height:calc(100dvh - 56px);scroll-snap-align:start;scroll-snap-stop:always;padding:16px 16px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden;max-width:560px;margin:0 auto}
+.slide h2{margin:0;font-size:21px}
+.slide .kicker{color:var(--accent);font-weight:800;font-size:13px;letter-spacing:.4px;text-transform:uppercase}
+.slide .pic{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.slide .pic svg{max-width:100%;max-height:100%;height:auto}
+.slide ul{margin:0;padding-left:20px;font-size:15px}
+.slide .hint{text-align:center;color:var(--mute);font-size:13px}
+/* report sheet */
+.rsheet{position:fixed;inset:0;z-index:70;background:#fff;display:flex;flex-direction:column}
+.rsheet iframe{flex:1;border:0;width:100%}
+.rsheet .acts{display:flex;gap:8px;padding:10px 14px calc(10px + var(--safe-b));border-top:1px solid var(--line)}
+.verify li{list-style:none;padding:6px 0;border-bottom:1px solid var(--line);display:flex;gap:10px}
+.verify{padding:0;margin:0}
 /* splice rows */
 .wh{display:grid;grid-template-columns:28px 1fr 1.3fr 36px;gap:8px;font-size:12px;color:var(--mute);font-weight:700;margin:12px 0 6px}
 .wh span:first-child{grid-column:2}
@@ -293,6 +323,18 @@ body.mode-scroll .fab{bottom:calc(20px + var(--safe-b))}
   <iframe id="sheetFrame" title="Sensor setup tool" allow="fullscreen"></iframe>
 </div>
 
+<div class="walk hidden" id="walk" role="dialog" aria-modal="true">
+  <div class="walkbar"><b id="walkTitle">Step by step</b><span id="walkCount"></span><button class="btn sm" id="walkClose">Close</button></div>
+  <div class="walkscroll" id="walkScroll"></div>
+</div>
+
+<div class="rsheet hidden" id="rsheet" role="dialog" aria-modal="true">
+  <div class="sheethead"><b>Installer report</b><button class="btn sm" id="rClose">Close</button></div>
+  <iframe id="rFrame" title="Installer report"></iframe>
+  <div class="acts"><button class="btn primary" id="rSend">Send report</button><button class="btn ghost" id="rPrint">Print / PDF</button></div>
+  <p class="muted" id="rStatus" style="margin:0;padding:0 14px 8px;min-height:1em"></p>
+</div>
+
 <div class="modal hidden" id="newModal" role="dialog" aria-modal="true">
   <div class="modalbox">
     <h3 id="newTitle">Start a new install?</h3>
@@ -332,7 +374,7 @@ const CONFIG = {
   // Email: set true after deploying supabase/functions/send-guide (see README in that file).
   // If false or the send fails, the app falls back to the phone's mail app (text only).
   EMAIL_ENABLED: false,
-  APP_VERSION: "8"
+  APP_VERSION: "9"
 };
 
 /* =========================================================
@@ -347,7 +389,7 @@ const PRODUCTS = [
   {sku:"ncr_hart",    name:"NCR",  variant:"HART",   family:"ncr",  proto:"hart",   group:"sensors", icon:"radar2", part:"ncr-hart-420"},
   {sku:"ncr_420",     name:"NCR",  variant:"4-20 mA",family:"ncr",  proto:"analog", group:"sensors", icon:"radar2", part:"ncr-hart-420"},
   {sku:"bintrac",     name:"BinTrac", variant:"Load cell", family:"bintrac", proto:null, group:"sensors", icon:"loadcell", part:"bintrac-mount"},
-  {sku:"smartbob",    name:"SmartBob",variant:"Cable", family:"smartbob",proto:null, group:"sensors", icon:"bob"},
+  {sku:"smartbob",    name:"SmartBob",variant:"Cable", family:"smartbob",proto:null, group:"sensors", icon:"bob", part:"smartbob"},
   {sku:"ltx_cell",    name:"LTX", variant:"Cellular", family:"ltx", net:"cellular", group:"gateway", icon:"ltxcell", part:"ltx"},
   {sku:"ltx_eth",     name:"LTX", variant:"Ethernet", family:"ltx", net:"ethernet", group:"gateway", icon:"ltxeth", part:"ltx"},
   {sku:"c100",        name:"C-100", variant:"Display", family:"c100", group:"gateway", icon:"display"},
@@ -372,8 +414,12 @@ const SENSOR_FAMILIES = ["cncr","ncr","bintrac","smartbob"];
 
 /* Wire purposes. "bank" = TC-100 terminal bank color from the system drawing */
 const PURPOSES = [
-  {id:"pwr",   label:"+24V power",   bank:"var(--bank-pwr)", stroke:"#e53935"},
-  {id:"gnd",   label:"0V ground",    bank:"var(--bank-gnd)", stroke:"#222"},
+  {id:"pwr",   label:"Power",        bank:"var(--bank-pwr)", stroke:"#e53935"},
+  {id:"gnd",   label:"Ground",       bank:"var(--bank-gnd)", stroke:"#222"},
+  {id:"exc_p", label:"Excitation +", bank:null, stroke:"#e53935"},
+  {id:"exc_m", label:"Excitation −", bank:null, stroke:"#222"},
+  {id:"sig_p", label:"Signal +",     bank:null, stroke:"#2e9e44"},
+  {id:"sig_m", label:"Signal −",     bank:null, stroke:"#f5f5f5"},
   {id:"rs_a",  label:"485+",         bank:"var(--bank-a)", stroke:"#1e88f0"},
   {id:"rs_b",  label:"485−",         bank:"var(--bank-b)", stroke:"#9aa3ad"},
   {id:"sig",   label:"4-20 mA / HART signal", bank:null, stroke:"#8e24aa"},
@@ -403,6 +449,15 @@ const LAND = {
       rs_b:["LTX 485−","LTX 485−"],shld:["Tie to RS-485 cable shield","Tie to shield"],sig:["Signal loop — landing TBD","Loop (TBD)"]}
 };
 
+/* Every sensor has a fixed set of wires. The installer picks the colour of each one. */
+const ROLE_SETS = { modbus4:["pwr","gnd","rs_a","rs_b"], loop2:["pwr","gnd"], loadcell:["exc_p","exc_m","sig_p","sig_m"] };
+const SKU_ROLES = { cncr_modbus:"modbus4", ncr_modbus:"modbus4", smartbob:"modbus4",
+                    cncr_hart:"loop2", cncr_420:"loop2", ncr_hart:"loop2", ncr_420:"loop2", bintrac:"loadcell" };
+/* BinMaster standard Modbus colours (LTX Modbus sensor drawing) — offered as a one-tap shortcut only */
+const STD_COLORS = { modbus4:{pwr:"brown",gnd:"blue",rs_a:"black",rs_b:"white"} };
+const sensorRoles = sku => ROLE_SETS[SKU_ROLES[sku]]||[];
+const roleLabel = r => (PUR[r]||{}).label||r;
+
 /* =========================================================
    STATE (persisted to localStorage so installers can resume)
    ========================================================= */
@@ -412,12 +467,14 @@ const fresh = () => ({
   started: new Date().toISOString(),
   job:{customer:"",site:"",address:"",installer:"",installerEmail:""},
   added:[], bench:{start:null,end:null,seconds:null}, pick:"cncr",
+  cables:{psdc:{pwr:"",gnd:""}, ltx:{pwr:"",gnd:"",rs_a:"",rs_b:""}}, log:[], finished:null,
   qty:{}, comm:null, net:null,
   sensors:[], checks:{}, step:0, mode:"wizard"
 });
 let S = load();
 function load(){ try{ const o=Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY))||{});
-  o.job=Object.assign(fresh().job,o.job||{}); o.added=(o.added||[]).filter(a=>a&&a.purpose!==undefined); o.bench=o.bench||{start:null,end:null,seconds:null}; return o; }catch(e){ return fresh(); } }
+  o.job=Object.assign(fresh().job,o.job||{}); o.added=(o.added||[]).filter(a=>a&&a.purpose!==undefined); o.bench=o.bench||{start:null,end:null,seconds:null};
+  o.cables=Object.assign(fresh().cables,o.cables||{}); o.log=o.log||[]; return o; }catch(e){ return fresh(); } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
 const q = s => S.qty[s]||0;
@@ -431,9 +488,13 @@ function syncSensors(){
   PRODUCTS.filter(p=>SENSOR_FAMILIES.includes(p.family)).forEach(p=>{
     const existing = S.sensors.filter(s=>s.sku===p.sku);
     for(let i=0;i<q(p.sku);i++){
-      out.push(existing[i] || {id:p.sku+"_"+i+"_"+Math.random().toString(36).slice(2,6), sku:p.sku,
-        vessel:"", yellow:false, cable:"", splice:false, configured:false,
-        wires: JSON.parse(JSON.stringify(WIRE_DEFAULTS[p.sku]||[])), wiresFromDrawing: !!WIRE_DEFAULTS[p.sku]});
+      const sn = existing[i] || {id:p.sku+"_"+i+"_"+Math.random().toString(36).slice(2,6), sku:p.sku,
+        vessel:"", yellow:false, cable:"", splice:false, configured:false, wires:[]};
+      // fixed wire list for this sensor type; keep any colours already picked
+      const old = sn.wires||[];
+      sn.wires = sensorRoles(p.sku).map(r=>({purpose:r, color:(old.find(w=>w.purpose===r)||{}).color||""}));
+      sn.splice=false;
+      out.push(sn);
     }
   });
   S.sensors=out;
@@ -467,6 +528,7 @@ function snapshotData(){
       splice:!!s.splice, my_wire:s.cable||"", configured:!!s.configured,
       wires:s.wires.map(w=>({sensor_color:w.color, my_color:s.splice?(w.field||""):"", job:PUR[w.purpose]?.label||w.purpose}))})),
     added_wires: S.added.map(a=>({color:a.color, job:PUR[a.purpose]?.label||a.purpose})),
+    cables: S.cables, finished: S.finished, steps_done: S.log.map(l=>l.id),
     bench_seconds: S.bench.seconds, checks: S.checks, email: S.email||S.job.installerEmail||""
   };
 }
@@ -524,22 +586,22 @@ function partPic(id, cls="pp"){
   return `<svg class="${cls}" viewBox="${p.viewBox}" role="img" aria-label="${esc(p.name)}" font-family="system-ui,Arial">${DEFS}${p.draw()}</svg>`;
 }
 function prodPic(p, cls){ const id = p.part==="ltx" ? ltxPartId() : p.part; return (id && partPic(id,cls)) || icon(p.icon); }
-const FAM_PART = {ncr:"ncr-hart-420", bintrac:"bintrac-mount"};
+const FAM_PART = {ncr:"ncr-hart-420", bintrac:"bintrac-mount", smartbob:"smartbob"};
 function famPic(f){ return (FAM_PART[f.fam] && partPic(FAM_PART[f.fam])) || icon(f.icon); }
 
 /* =========================================================
    STEPS
    ========================================================= */
 const STEPS = [
-  {id:"start",   title:"Start",            render:rStart},
-  {id:"order",   title:"What's in the order", render:rOrder},
-  {id:"confirm", title:"Your order",       render:rConfirm},
-  {id:"unbox",   title:"Unbox & name vessels", render:rUnbox},
-  {id:"wires",   title:"Identify wires",   render:rWires},
-  {id:"bench",   title:"Power & bench setup", render:rBench},
-  {id:"place",   title:"Sensor placement", render:rPlace},
-  {id:"wiring",  title:"System wiring",    render:rWiring},
-  {id:"done",    title:"Quick Start Guide",render:rDone}
+  {id:"start",     title:"Start",               render:rStart},
+  {id:"order",     title:"What's in the order", render:rOrder},
+  {id:"confirm",   title:"Your order",          render:rConfirm},
+  {id:"unbox",     title:"Unbox & name vessels",render:rUnbox},
+  {id:"wires",     title:"Identify wires",      render:rWires},
+  {id:"bench",     title:"Power & bench setup", render:rBench},
+  {id:"configure", title:"Configure sensors",   render:rConfigure},
+  {id:"install",   title:"Install on the bins", render:rInstall},
+  {id:"done",      title:"Finish & report",     render:rDone}
 ];
 
 const W = document.getElementById("wizard");
@@ -548,14 +610,14 @@ const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">
 function go(i){
   i=Math.max(0,Math.min(STEPS.length-1,i));
   if(i===S.step && W.innerHTML) return;
+  if(i>S.step){ for(let k=S.step;k<i;k++) S.log.push({id:STEPS[k].id,title:STEPS[k].title,at:new Date().toISOString()}); }
   snap(); S.step=i;
-  if(i===STEPS.length-1) stopTimer();
   save(); render(); window.scrollTo({top:0}); track("step_view",{step:STEPS[i].id});
 }
 function render(){
   document.body.classList.toggle("mode-scroll", S.mode==="scroll");
   document.getElementById("modeBtn").textContent = S.mode==="scroll" ? "Step-by-step" : "Guide view";
-  const fabOn = S.mode==="scroll" || ["wiring","done"].includes(STEPS[S.step].id);
+  const fabOn = S.mode==="scroll";
   document.getElementById("fab").classList.toggle("hidden", !fabOn);
   if(S.mode==="scroll"){ renderGuide(); return; }
   const st=STEPS[S.step];
@@ -563,14 +625,14 @@ function render(){
   document.getElementById("hdrTitle").textContent = "Installer · "+st.title;
   document.getElementById("progBar").style.width = ((S.step)/(STEPS.length-1)*100)+"%";
   document.getElementById("progLbl").textContent = st.title;
-  document.getElementById("progNum").innerHTML = `Step ${S.step+1} of ${STEPS.length}`+(S.bench.start?` · <span class="timerpill">⏱ <span data-clock>${fmtTime(benchElapsed())}</span></span>`:"");
+  document.getElementById("progNum").textContent = `Step ${S.step+1} of ${STEPS.length}`;
   document.getElementById("backBtn").disabled = S.step===0;
   const nb=document.getElementById("nextBtn");
-  nb.textContent = S.step===STEPS.length-1 ? "Print Quick Start Guide" : (S.step===0?"Start install":"Next");
+  nb.textContent = S.step===STEPS.length-1 ? "Finish install and send report" : (S.step===0?"Start install":"Next");
   const blk = blocker(); nb.disabled = !!blk; nb.title = blk||"";
   document.getElementById("stepNav").innerHTML = STEPS.map((x,i)=>
     `<button class="${i===S.step?'on':''} ${i<S.step?'done':''}" data-go="${i}"><span class="n">${i<S.step?'✓':i+1}</span>${x.title}</button>`).join("")+
-    (S.bench.start?`<div class="muted" style="padding:10px 12px">⏱ <span data-clock>${fmtTime(benchElapsed())}</span></div>`:"");
+    `<div class="muted" style="padding:10px 12px;font-size:12px">Version ${CONFIG.APP_VERSION}</div>`;
   bind();
 }
 function blocker(){
@@ -589,55 +651,20 @@ function remember(){
   try{ localStorage.setItem(RKEY,JSON.stringify(r)); }catch(e){}
 }
 const dl=(k)=>`<datalist id="dl_${k}">${(recent()[k]||[]).map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`;
-function timeStatCard(){
-  const t = benchStats && benchStats.installs>=5 ? benchStats : null;
-  return `<div class="card statcard"><div style="font-size:30px">⏱</div><div class="grow">
-    ${t?`<div class="muted">Typical install with this app</div><div class="big">${t.median_minutes} min</div>
-        <div class="muted" style="font-size:12px">median of ${t.installs} installs · fastest & slowest 10% left out</div>`
-       :`<div><b>This app keeps installs quick.</b></div><div class="muted">The timer starts on your first tap and stops at the last step.</div>`}
-    ${S.bench.start?`<div style="margin-top:6px">This install: <b data-clock>${fmtTime(benchElapsed())}</b></div>`:""}
-  </div></div>`;
-}
 function rStart(){
   return `
+  <div class="ver">BST Installer · Version ${CONFIG.APP_VERSION}</div>
   <h2>Let's install it right the first time.</h2>
-  <p class="sub">About 10 swipes. Your progress saves on this phone automatically.</p>
-  ${timeStatCard()}
-  <div class="callout"><b>Before you start:</b> find the <b>packing list</b> in the clear envelope on the outside of one of the boxes. You'll use it on the next screen.</div>
+  <p class="sub">Your progress saves on this phone as you go.</p>
   <form class="card" autocomplete="on" onsubmit="return false">
-    <h3>Job</h3>
-    <label class="f" for="f_customer">Customer / company</label>
-    <input id="f_customer" type="text" name="organization" autocomplete="organization" list="dl_customer" data-job="customer" value="${esc(S.job.customer)}" placeholder="e.g. Smith Grain Co.">${dl("customer")}
-    <label class="f" for="f_site">Site name</label>
-    <input id="f_site" type="text" name="site" list="dl_site" data-job="site" value="${esc(S.job.site)}" placeholder="e.g. North elevator">${dl("site")}
-    <label class="f" for="f_addr">Site street address</label>
-    <input id="f_addr" type="text" name="street-address" autocomplete="street-address" list="dl_address" data-job="address" value="${esc(S.job.address)}" placeholder="Street, city, state, ZIP">${dl("address")}
-    <div class="geo"><button type="button" class="btn ghost sm" id="geoBtn">📍 Use my location</button>
-      <span class="muted" id="geoStatus">${S.job.lat?`GPS saved: ${(+S.job.lat).toFixed(5)}, ${(+S.job.lon).toFixed(5)}`:""}</span></div>
-    <label class="f" for="f_name">Installer name</label>
-    <input id="f_name" type="text" name="name" autocomplete="name" data-job="installer" value="${esc(S.job.installer)}">
-    <label class="f" for="f_email">Installer email</label>
+    <label class="f" for="f_email">Email</label>
     <input id="f_email" type="email" name="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" data-job="installerEmail" value="${esc(S.job.installerEmail)}" placeholder="you@company.com">
-    <p class="muted" style="margin:8px 0 0">Your name and email are remembered for the next install.</p>
+    <label class="f" for="f_customer">Company</label>
+    <input id="f_customer" type="text" name="organization" autocomplete="organization" list="dl_customer" data-job="customer" value="${esc(S.job.customer)}" placeholder="e.g. Smith Grain Co.">${dl("customer")}
+    <label class="f" for="f_site">Site</label>
+    <input id="f_site" type="text" name="site" list="dl_site" data-job="site" value="${esc(S.job.site)}" placeholder="e.g. North elevator">${dl("site")}
   </form>
-  ${S.sensors.length||Object.keys(S.qty).length?`<button class="btn ghost sm noprint" id="resetBtn">Start a new install (clear saved)</button>`:""}`;
-}
-function useLocation(){
-  const st=document.getElementById("geoStatus");
-  if(!navigator.geolocation){ st.textContent="Location isn't available on this device."; return; }
-  st.textContent="Finding you…";
-  navigator.geolocation.getCurrentPosition(async p=>{
-    const lat=p.coords.latitude, lon=p.coords.longitude; S.job.lat=lat; S.job.lon=lon; save();
-    let line="";
-    try{
-      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${lat}&lon=${lon}`);
-      const j=await r.json(), a=j.address||{};
-      line=[[a.house_number,a.road].filter(Boolean).join(" "), a.city||a.town||a.village||a.hamlet||a.county, a.state, a.postcode].filter(Boolean).join(", ");
-    }catch(e){}
-    S.job.address = line || S.job.address || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-    save(); track("geo",{ok:true}); render();
-  }, e=>{ st.textContent = e.code===1 ? "Location permission was denied." : "Couldn't get your location."; track("geo",{ok:false,code:e.code}); },
-  {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+  ${S.sensors.length||Object.keys(S.qty).length?`<button class="btn ghost sm noprint" id="resetBtn">Start a new install (clears this one)</button>`:""}`;
 }
 
 /* ---------- Step: order (swipe 1) ---------- */
@@ -717,126 +744,112 @@ function rUnbox(){
 function noSensors(){ return `<h2>No sensors selected</h2><div class="callout warn">Go back to the order screen and add the sensors from the packing list.</div>`; }
 
 /* ---------- Step: wires ---------- */
-const ADDED_PURPOSES = ["pwr","gnd","rs_a","rs_b","shld"];
-const ADDED_SUGGEST = {pwr:"red",gnd:"black",rs_a:"white",rs_b:"green",shld:"bare"};
-const addedFor = p => (S.added.find(a=>a.purpose===p)||{}).color || null;
-function addedWiresCard(){
-  const purposes = commsUsed().some(c=>c!=="modbus") ? [...ADDED_PURPOSES.slice(0,4),"sig","shld"] : ADDED_PURPOSES;
-  return `<div class="card"><h3>Wire you're adding</h3>
-    <p class="muted" style="margin:0 0 10px">Besides each sensor's built-in wires, what wire are you adding? Give each color its job.</p>
-    ${S.added.length?`<div class="wh"><span>Your wire</span><span>Job</span></div>`:""}
-    ${S.added.map((a,i)=>`<div class="wire">
-      <span class="swatch" style="background:${COLORS[a.color]||'#fff'}"></span>
-      <select data-add="${i}" data-k="color" aria-label="wire color">${colorOpts(a.color)}</select>
-      <select data-add="${i}" data-k="purpose" aria-label="wire job">${purposes.map(p=>`<option value="${p}" ${a.purpose===p?"selected":""}>${PUR[p].label}</option>`).join("")}</select>
-      <button class="x" data-deladd="${i}" aria-label="remove">✕</button>
-    </div>`).join("")}
-    <button class="btn ghost sm" id="addRun">+ Add a wire</button>
-    ${!S.added.length?`<span class="muted" style="margin-left:8px">None — sensor cables reach</span>`:""}
-  </div>`;
+const colorOpts = sel => `<option value="">Choose colour…</option>`+Object.keys(COLORS).map(c=>`<option ${sel===c?"selected":""}>${c}</option>`).join("");
+const addedFor = p => null;            // (old "wire you're adding" — replaced by cable cards)
+function roleRow(label, color, attrs){
+  return `<div class="role"><b>${label}</b><span class="swatch ${color?"":"none"}" style="${color?`background:${COLORS[color]}`:""}"></span>
+    <select ${attrs} class="${color?"":"unset"}" aria-label="${label} colour">${colorOpts(color)}</select></div>`;
 }
-function addWire(){
-  const used=new Set(S.added.map(a=>a.purpose)), usedC=new Set(S.added.map(a=>a.color));
-  const p=ADDED_PURPOSES.find(x=>!used.has(x))||"pwr";
-  let c=ADDED_SUGGEST[p]; if(usedC.has(c)) c=Object.keys(COLORS).find(x=>!usedC.has(x))||c;
-  S.added.push({color:c,purpose:p});
+function dupWarn(colors){
+  const seen={}, d=[]; colors.filter(Boolean).forEach(c=>{ if(seen[c]) d.push(c); seen[c]=1; });
+  return d.length?`<div class="callout warn" style="margin:8px 0 0">The <b>${[...new Set(d)].join(", ")}</b> colour is used for two wires. Each wire needs its own colour.</div>`:"";
 }
-/* Spliced sensors follow the installer's wire colors */
-function applyAddedToSplices(){
-  S.sensors.filter(s=>s.splice).forEach(s=>s.wires.forEach(w=>{ const c=addedFor(w.purpose); if(c) w.field=c; }));
+function cableCards(){
+  const out=[], ms=S.sensors.some(s=>["modbus4"].includes(SKU_ROLES[s.sku]));
+  if(has("psdc")) out.push(["psdc", `PSDC power cable`, `PSDC to ${has("tc100")?"TC-100":"LTX"}`, ["pwr","gnd"]]);
+  if(has("tc100") && has("ltx")) out.push(["ltx", "LTX cable", "TC-100 to LTX", ms?["pwr","gnd","rs_a","rs_b"]:["pwr","gnd"]]);
+  return out.map(([k,t,sub,roles])=>`<div class="card"><div class="sensorhead">${partPic(k==="psdc"?"psdc":ltxPartId())||""}<div class="grow"><b>${t}</b><div class="muted">${sub}</div></div></div>
+    ${roles.map(r=>roleRow(roleLabel(r), S.cables[k][r], `data-cable="${k}" data-role="${r}"`)).join("")}
+    ${roles.length===4?`<button class="btn ghost sm" style="margin-top:8px" data-stdcable="${k}">Use BinMaster standard colours</button>`:""}
+    ${dupWarn(roles.map(r=>S.cables[k][r]))}</div>`).join("");
 }
-const colorOpts = sel => Object.keys(COLORS).map(c=>`<option ${sel===c?"selected":""}>${c}</option>`).join("");
 function rWires(){
-  if(!S.sensors.length) return noSensors();
-  const dest = has("tc100") ? "the TC-100" : "the LTX / power supply";
+  if(!S.sensors.length && !has("psdc")) return noSensors();
   return `
   <h2>Identify the wires</h2>
-  <p class="sub">Use the yellow sheet to give each sensor wire its job. Running your own wire to ${dest}? Pick which of your colors each sensor wire splices to.</p>
-  ${addedWiresCard()}
-  <h3 style="margin:16px 2px 8px">Sensor wires</h3>
+  <p class="sub">Pick the colour of each wire as it reaches the terminals. The drawings on the next screen use these colours.</p>
+  ${cableCards()}
   ${S.sensors.map((s,i)=>{
-    const twins = S.sensors.filter(x=>x.sku===s.sku).length>1;
-    return `
-  <div class="card">
+    const roles=sensorRoles(s.sku), set=SKU_ROLES[s.sku], twins=S.sensors.filter(x=>x.sku===s.sku).length>1;
+    return `<div class="card">
     <div class="sensorhead">${prodPic(P[s.sku])}<div class="grow"><b>${sensorLabel(s,i)}</b><div class="muted">${esc(s.vessel)||"Vessel not named"}</div></div></div>
-    ${s.wiresFromDrawing?`<div class="callout info" style="margin:10px 0">Sensor wire colors pre-filled from the BinMaster CNCR Modbus drawing.</div>`
-      :`<div class="callout" style="margin:10px 0">Enter this sensor's wire colors from the yellow sheet.</div>`}
-    <label class="f">Wire from sensor to ${dest}</label>
-    <div class="seg" data-splice="${s.id}">
-      <button class="${!s.splice?'on':''}" data-v="0">Sensor cable reaches</button>
-      <button class="${s.splice?'on':''}" data-v="1">Splicing my own wire</button>
+    ${s.wires.map((w,wi)=>roleRow(roleLabel(w.purpose)+" wire", w.color, `data-wire="${s.id}" data-wi="${wi}" data-k="color"`)).join("")}
+    <div class="row" style="flex-wrap:wrap;margin-top:8px">
+      ${STD_COLORS[set]?`<button class="btn ghost sm" data-std="${s.id}">Use BinMaster standard colours</button>`:""}
+      ${twins?`<button class="btn ghost sm" data-copyall="${s.id}">Same colours for all ${P[s.sku].name} ${P[s.sku].variant}</button>`:""}
     </div>
-    <div class="wires">
-      <div class="wh"><span>Sensor wire</span><span>Job</span></div>
-      ${s.wires.map((w,wi)=>`
-      <div class="wire">
-        <span class="swatch" style="background:${COLORS[w.color]||'#fff'}"></span>
-        <select data-wire="${s.id}" data-wi="${wi}" data-k="color" aria-label="sensor wire color">${colorOpts(w.color)}</select>
-        <select data-wire="${s.id}" data-wi="${wi}" data-k="purpose" aria-label="wire job">${PURPOSES.map(p=>`<option value="${p.id}" ${w.purpose===p.id?"selected":""}>${p.label}</option>`).join("")}</select>
-        <button class="x" data-delwire="${s.id}" data-wi="${wi}" aria-label="remove wire">✕</button>
-        ${s.splice && w.purpose!=="none" ? `<div class="splice">↳ splices to my
-          <span class="swatch sm" style="background:${COLORS[w.field]||'#fff'}"></span>
-          <select data-wire="${s.id}" data-wi="${wi}" data-k="field" aria-label="my wire color"><option value="">color…</option>${colorOpts(w.field)}</select></div>`:""}
-      </div>`).join("")}
-    </div>
-    ${spliceClash(s)?`<div class="callout warn" style="margin:8px 0 0">${spliceClash(s)}</div>`:""}
-    <div class="row" style="flex-wrap:wrap;margin-top:8px"><button class="btn ghost sm" data-addwire="${s.id}">+ Add wire</button>
-      ${twins?`<button class="btn ghost sm" data-copyall="${s.id}">Use for all ${P[s.sku].name} ${P[s.sku].variant}</button>`:""}</div>
+    ${dupWarn(s.wires.map(w=>w.color))}
   </div>`}).join("")}`;
 }
-
-/* Suggest my-wire colors: +24V→red, 0V→black, others keep the sensor color unless that color is taken. */
-function suggestSplice(s){
-  const live=s.wires.filter(w=>w.purpose!=="none");
-  const used=new Set(live.filter(w=>w.field).map(w=>w.field));
-  const take=(w,c)=>{ w.field=c; used.add(c); };
-  live.filter(w=>!w.field && addedFor(w.purpose)).forEach(w=>take(w,addedFor(w.purpose)));
-  live.filter(w=>!w.field && SPLICE_SUGGEST[w.purpose] && !used.has(SPLICE_SUGGEST[w.purpose])).forEach(w=>take(w,SPLICE_SUGGEST[w.purpose]));
-  live.filter(w=>!w.field && !used.has(w.color)).forEach(w=>take(w,w.color));
-  live.filter(w=>!w.field).forEach(w=>take(w,["green","yellow","orange","white","blue","purple","gray"].find(x=>!used.has(x))||w.color));
-}
-function spliceClash(s){
-  if(!s.splice) return "";
-  const m={}; s.wires.filter(w=>w.purpose!=="none"&&w.field).forEach(w=>(m[w.field]=m[w.field]||[]).push(PUR[w.purpose].label));
-  const bad=Object.entries(m).filter(([,v])=>v.length>1);
-  return bad.length?`Your <b>${bad.map(b=>b[0]).join(", ")}</b> wire is used for more than one job (${bad.map(b=>b[1].join(" + ")).join("; ")}). Pick a different color.`:"";
-}
-
 /* ---------- Connections model (drives bench, runs, diagram, email) ---------- */
+/* TC-100 banks, as on the real box: black · red · blue · gray */
+const BANK_OF   = {pwr:"o", gnd:"g", rs_a:"b", rs_b:"w"};
+const BANK_NAME = {o:"Red bank (Power)", g:"Black bank (Ground)", b:"Blue bank (485+)", w:"Gray bank (485−)"};
+const BANK_SHORT= {o:"Red · Power", g:"Black · Ground", b:"Blue · 485+", w:"Gray · 485−"};
+const TC_SENSOR_SLOTS = ["B1","B2","B3","T3"];          // top 1 = PSDC, top 2 = LTX
+const NCR_TERM = {pwr:"1", gnd:"2", rs_a:"3", rs_b:"4"};
+const NCR_TERM_LBL = {1:"1 (+)", 2:"2 (−)", 3:"3 D0(+)", 4:"4 D1(−)"};
+const isModbusish = p => ["cncr_modbus","ncr_modbus","smartbob"].includes(p.sku);
+const colorOf = (s,r) => (s.wires.find(w=>w.purpose===r)||{}).color||"";
+const cab = (k,r) => (S.cables[k]||{})[r]||"";
+function sKey(s,r){ return P[s.sku].family==="ncr" ? NCR_TERM[r] : r; }
+function sLbl(s,r){ return P[s.sku].family==="ncr" ? NCR_TERM_LBL[NCR_TERM[r]] : roleLabel(r)+" wire"; }
 function connections(){
   const tc=has("tc100"), ltx=has("ltx"), psdc=has("psdc"), C=[];
-  const ps = psdc ? "PSDC" : "24 VDC supply";
-  if(psdc) C.push({id:"ac",title:"AC power to PSDC",from:"115 VAC",to:"PSDC",
-    wires:[{a:"Line (hot)",b:"L",color:"black"},{a:"Neutral",b:"N",color:"white"}],
+  const Wr=(fk,a,tk,b,color,purpose,bs)=>({fk,a,tk,b,bs:bs||b,color,purpose});
+  const anyModbus=S.sensors.some(s=>isModbusish(P[s.sku]));
+  if(psdc) C.push({id:"ac",title:"AC power to PSDC",from:"AC supply",fromDev:"ac",to:"PSDC",toDev:"psdc",
+    wires:[Wr("L","Line (hot)","L","L","black","ac"),Wr("N","Neutral","N","N","white","ac")],
     note:"Power OFF and locked out before wiring. Follow local electrical code."});
-  if(tc) C.push({id:"ps_tc",title:"24 VDC to TC-100",from:ps,to:"TC-100",
-    wires:[{a:"+V",b:LAND.tc.pwr[0],bs:LAND.tc.pwr[1],color:addedFor("pwr")||"red"},{a:"−V",b:LAND.tc.gnd[0],bs:LAND.tc.gnd[1],color:addedFor("gnd")||"black"}]});
-  if(ltx) C.push({id:"ps_ltx",title:"24 VDC to LTX",from:ps,to:"LTX-100",tbd:true,
-    wires:[{a:"+V",b:"24 VDC +",color:"red"},{a:"−V",b:"24 VDC −",color:"black"}],
-    note:"The LTX can also run from a 24 VDC wall-wart supply."});
-  if(ltx && tc) C.push({id:"ltx_tc",title:"RS-485 cable: LTX to TC-100",from:"LTX-100",to:"TC-100",tbd:true,
-    wires:[{a:"485+",b:LAND.tc.rs_a[0],bs:LAND.tc.rs_a[1],color:addedFor("rs_a")||"blue"},
-           {a:"485−",b:LAND.tc.rs_b[0],bs:LAND.tc.rs_b[1],color:addedFor("rs_b")||"white"},
-           {a:"Shield",b:"Tie to sensor shields",bs:"Sensor shields",color:addedFor("shld")||"bare"}]});
-  if(has("c100")) C.push({id:"c100",title:"C-100 display",from:"C-100",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
-    note:"Landing details coming. Wiring drawing for the C-100 still needed."});
-  if(has("c50")) C.push({id:"c50",title:"C50",from:"C50",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
-    note:"Landing details coming. Wiring drawing for the C50 still needed."});
-  if(has("chiyu_bf430")) C.push({id:"chiyu",title:"Chiyu BF-430",from:"BF-430",to:tc?"TC-100":"RS-485 bus",tbd:true,wires:[],
-    note:"RS-485 to Ethernet converter. Landing details coming."});
+  if(psdc && tc) C.push({id:"ps_tc",title:"PSDC to TC-100",from:"PSDC",fromDev:"psdc",to:"TC-100",toDev:"tc",
+    wires:[Wr("pV","+V","o:T1",BANK_NAME.o+" · top 1",cab("psdc","pwr"),"pwr",BANK_SHORT.o),
+           Wr("mV","−V","g:T1",BANK_NAME.g+" · top 1",cab("psdc","gnd"),"gnd",BANK_SHORT.g)]});
+  else if(psdc && ltx) C.push({id:"ps_ltx",title:"PSDC to LTX",from:"PSDC",fromDev:"psdc",to:"LTX-100",toDev:"ltx",
+    wires:[Wr("pV","+V","pwr0","DC In",cab("psdc","pwr"),"pwr"),Wr("mV","−V","pwr1","GND",cab("psdc","gnd"),"gnd")]});
+  if(tc && ltx){
+    const roles=anyModbus?["pwr","gnd","rs_a","rs_b"]:["pwr","gnd"];
+    const to={pwr:["pwr0","DC In"],gnd:["pwr1","GND"],rs_a:["r1_2","RS-485 1 A+"],rs_b:["r1_1","RS-485 1 B−"]};
+    C.push({id:"tc_ltx",title:"TC-100 to LTX",from:"TC-100",fromDev:"tc",to:"LTX-100",toDev:"ltx",tbd:true,
+      wires:roles.map(r=>Object.assign(Wr(BANK_OF[r]+":T2",BANK_NAME[BANK_OF[r]]+" · top 2",to[r][0],to[r][1],cab("ltx",r),r),{as:BANK_SHORT[BANK_OF[r]]})),
+      note:"Confirm: the LTX is powered from the TC-100 (DC In / GND). It can also use its 9–30V barrel jack."});
+  }
+  [["c100","C-100 display"],["c50","C50"],["chiyu_bf430","Chiyu BF-430"],["bintrac_ind","BinTrac indicator"],["bintrac_sum","Summing box"]]
+    .forEach(([f,n])=>{ if(has(f)) C.push({id:f,title:n,from:n,fromDev:f,to:"—",toDev:null,tbd:true,wires:[],note:"Wiring details coming."}); });
+  let mi=0, hi=0, ai=0;
   S.sensors.forEach((s,i)=>{
-    const p=P[s.sku], analog=["hart","analog"].includes(p.proto), L=tc?LAND.tc:LAND.direct;
-    const wires=s.wires.filter(w=>w.purpose!=="none").map(w=>({a:w.color+" lead", b:L[w.purpose][0], bs:L[w.purpose][1],
-      color:w.color, field:(s.splice&&w.field)?w.field:null, purpose:w.purpose}));
-    const unused=s.wires.filter(w=>w.purpose==="none").map(w=>w.color);
-    const notes=[];
-    if(!wires.length) notes.push("Enter this sensor's wires on the Identify wires step.");
-    if(!tc && !analog && S.sensors.length>1) notes.push("No TC-100: daisy-chain power and RS-485 from sensor to sensor.");
-    if(unused.length) notes.push("Insulate unused: "+unused.join(", ")+".");
-    if(s.splice) notes.push("Seal every splice against moisture.");
-    C.push({id:s.id,sensor:true,title:`${p.name} ${p.variant} · ${s.vessel||"Sensor #"+(i+1)}`,
-      from:`${p.name} · ${s.vessel||"#"+(i+1)}`, to:tc?"TC-100":(analog?"Loop":"PSDC + LTX"),
-      wires, note:notes.join(" "), tbd:analog || (!tc && wires.length>0)});
+    const p=P[s.sku], roles=sensorRoles(s.sku), notes=[];
+    const c={id:s.id,sensor:true,title:`${p.name} ${p.variant} · ${s.vessel||"Sensor #"+(i+1)}`,
+             from:`${p.name} · ${s.vessel||"#"+(i+1)}`,fromDev:s.id,to:"—",toDev:null,wires:[]};
+    if(isModbusish(p)){
+      const k=mi++;
+      if(tc){ const slot=TC_SENSOR_SLOTS[k];
+        if(slot){ c.to="TC-100"; c.toDev="tc";
+          c.wires=roles.map(r=>Wr(sKey(s,r),sLbl(s,r),BANK_OF[r]+":"+slot,`${BANK_NAME[BANK_OF[r]]} · ${slot[0]==="T"?"top":"bottom"} ${slot[1]}`,colorOf(s,r),r,BANK_SHORT[BANK_OF[r]])); }
+        else notes.push("The TC-100 slots are full. Daisy-chain this sensor from sensor 4.");
+      } else if(ltx){ const port=k===1?"r2":"r1", idx={pwr:0,rs_b:1,rs_a:2,gnd:3}, nm={pwr:"DC Out",rs_b:"B−",rs_a:"A+",gnd:"GND"};
+        c.to="LTX-100"; c.toDev="ltx";
+        c.wires=roles.map(r=>Wr(sKey(s,r),sLbl(s,r),`${port}_${idx[r]}`,`RS-485 ${port[1]} ${nm[r]}`,colorOf(s,r),r));
+        if(k>=2) notes.push("Both RS-485 ports are in use. Daisy-chain this sensor onto RS-485 1.");
+      } else notes.push("Add an LTX or TC-100 to see where this sensor lands.");
+      if(p.sku==="smartbob"){ c.tbd=true; notes.push("SmartBob wiring still to confirm."); }
+    } else if(["hart","analog"].includes(p.proto)){
+      if(ltx){ c.to="LTX-100"; c.toDev="ltx";
+        if(p.proto==="hart"){ const card=(hi++<10)?1:2;
+          c.wires=[Wr(sKey(s,"pwr"),sLbl(s,"pwr"),`c${card}_dc`,`HART card ${card} DC OUT (+)`,colorOf(s,"pwr"),"pwr"),
+                   Wr(sKey(s,"gnd"),sLbl(s,"gnd"),`c${card}_sig`,`HART card ${card} SIGNAL (−)`,colorOf(s,"gnd"),"gnd")];
+          if(hi>1) notes.push("HART sensors share the card's DC OUT and SIGNAL terminals (daisy chain). Each needs a unique address.");
+        } else { const a=ai++, card=a<4?1:2, n=a%4+1;
+          if(a>=8) notes.push("More than 8 4-20 mA sensors: consult BinMaster Technical Support.");
+          else c.wires=[Wr(sKey(s,"pwr"),sLbl(s,"pwr"),`c${card}_out${n}`,`4-20 card ${card} OUT ${n} (+)`,colorOf(s,"pwr"),"pwr"),
+                        Wr(sKey(s,"gnd"),sLbl(s,"gnd"),`c${card}_in${n}`,`4-20 card ${card} IN ${n} (−)`,colorOf(s,"gnd"),"gnd")];
+        }
+      } else notes.push("Add an LTX to see where this sensor lands.");
+    } else if(p.family==="bintrac"){
+      c.tbd=true; if(has("bintrac_sum")){ c.to="Summing box"; c.toDev="bintrac_sum"; }
+      notes.push("Load cell wiring into the summing box: details coming.");
+    }
+    if(roles.some(r=>!colorOf(s,r))) notes.unshift("Pick this sensor's wire colours on the Identify wires step.");
+    c.note=notes.join(" "); C.push(c);
   });
   return C;
 }
@@ -852,7 +865,7 @@ function connSVG(c){
   if(!c.wires.length) g+=`<text x="${Wd/2}" y="${top+16}" text-anchor="middle" fill="#8a5a00">landing TBD</text>`;
   c.wires.forEach((w,i)=>{
     const y=top+i*rowH+rowH/2, ca=wireStroke(w.color)||"#999", cb=wireStroke(w.field||w.color)||"#999", x1=bw+1, x2=Wd-bw-1, mid=Wd/2;
-    g+=`<text x="${bw-6}" y="${y+4}" text-anchor="end">${esc(trunc(w.a,18))}</text>`;
+    g+=`<text x="${bw-6}" y="${y+4}" text-anchor="end">${esc(trunc(w.as||w.a,18))}</text>`;
     if(w.field && w.field!==w.color){ g+=seg(x1,mid,y,ca)+seg(mid,x2,y,cb)+`<circle cx="${mid}" cy="${y}" r="5" fill="#fff" stroke="#14202e" stroke-width="1.5"/>`; }
     else g+=seg(x1,x2,y,ca);
     g+=`<text x="${Wd-bw+6}" y="${y+4}">${esc(trunc(w.bs||w.b,18))}</text>`;
@@ -887,7 +900,6 @@ function benchElapsed(){ const b=S.bench; if(!b.start) return 0; return ((b.end|
 function startTimer(){
   if(S.mode!=="wizard" || S.bench.start) return;
   S.bench={start:Date.now(),end:null,seconds:null}; save(); track("bench_start",{});
-  const pn=document.getElementById("progNum"); if(pn && !pn.querySelector("[data-clock]")) pn.insertAdjacentHTML("beforeend",` · <span class="timerpill">⏱ <span data-clock>0:00</span></span>`);
 }
 function stopTimer(){
   const b=S.bench; if(!b.start || b.end) return;
@@ -906,32 +918,184 @@ setInterval(()=>{ if(!S.bench.start || S.bench.end) return; const t=fmtTime(benc
   document.querySelectorAll("[data-clock]").forEach(el=>el.textContent=t); },1000);
 
 /* ---------- Step: power & bench setup ---------- */
+/* ---------- Device terminal drawings ---------- */
+function lead(x1,y1,x2,y2,c){
+  const st=wireStroke(c);
+  if(!st) return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#9aa3ad" stroke-width="3" stroke-dasharray="5 4"/>`;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0008" stroke-width="7.4" stroke-linecap="round"/>
+          <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${st}" stroke-width="5" stroke-linecap="round"/>`;
+}
+const dot=(x,y,c)=>`<circle cx="${x}" cy="${y}" r="6" fill="${wireStroke(c)||"#fff"}" stroke="#14202e" stroke-width="2" ${c?"":'stroke-dasharray="2 2"'}/>`;
+const halo=(x,y,t,o="")=>`<text x="${x}" y="${y}" text-anchor="middle" font-size="11" font-weight="800" stroke="#fff" stroke-width="4" paint-order="stroke" ${o}>${t}</text>`;
+const scr=(cx,cy,r=8)=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#333" stroke-width="1.6"/><path d="M${cx-r*.55},${cy}h${r*1.1}M${cx},${cy-r*.55}v${r*1.1}" stroke="#333" stroke-width="1.6"/>`;
+const fsvg=(w,h,b)=>`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial">${b}</svg>`;
+
+function figPSDC(T){
+  const x=125,y=56,w=110,h=210,H=y+h+50, P_={mV:[x+60,y+20],pV:[x+88,y+20],N:[x+60,y+h-22],L:[x+88,y+h-22]};
+  let g=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#eef0f2" stroke="#14202e" stroke-width="2"/>
+    <line x1="${x}" y1="${y+52}" x2="${x+w}" y2="${y+52}" stroke="#14202e"/><line x1="${x}" y1="${y+h-56}" x2="${x+w}" y2="${y+h-56}" stroke="#14202e"/>
+    ${scr(x+22,y+20,6)}${scr(...P_.mV)}${scr(...P_.pV)}
+    <text x="${x+22}" y="${y+42}" text-anchor="middle" font-size="8">Vo ADJ</text>
+    <text x="${P_.mV[0]}" y="${y+44}" text-anchor="middle" font-size="12" font-weight="800">−V</text>
+    <text x="${P_.pV[0]}" y="${y+44}" text-anchor="middle" font-size="12" font-weight="800">+V</text>
+    <rect x="${x+12}" y="${y+62}" width="18" height="6" fill="#1e88f0"/>
+    <text x="${x+w/2}" y="${y+100}" text-anchor="middle" font-size="16" font-weight="900">PSDC</text>
+    <text x="${x+w/2}" y="${y+118}" text-anchor="middle" font-size="10">OUT 24 VDC 1.5 A</text>
+    <text x="${x+w/2}" y="${y+133}" text-anchor="middle" font-size="9">IN 100–240 VAC</text>
+    <text x="${P_.N[0]}" y="${y+h-36}" text-anchor="middle" font-size="12" font-weight="800">N</text>
+    <text x="${P_.L[0]}" y="${y+h-36}" text-anchor="middle" font-size="12" font-weight="800">L</text>
+    ${scr(...P_.N)}${scr(...P_.L)}`;
+  ["mV","pV"].forEach(k=>{ if(T[k]) g+=lead(P_[k][0],P_[k][1],P_[k][0],6,T[k].color)+dot(...P_[k],T[k].color); });
+  ["N","L"].forEach(k=>{ if(T[k]) g+=lead(P_[k][0],P_[k][1],P_[k][0],H-6,T[k].color)+dot(...P_[k],T[k].color); });
+  return fsvg(360,H,g);
+}
+function figTC(T){
+  const x=28,y=64,w=320,h=124,bw=80,H=y+h+60;
+  const banks=[["g","#2f3133","#fff","Ground"],["o","#c62828","#fff","Power"],["b","#1f5fd6","#fff","485+"],["w","#c9cdd1","#14202e","485−"]];
+  const pos=(b,row,i)=>[x+b*bw+bw*(0.2+0.3*i), row==="T"?y+16:y+h-16];
+  let g=`<text x="${x-6}" y="${y+20}" text-anchor="end" font-size="9" font-weight="700" fill="#6b7a8c">top</text><text x="${x-6}" y="${y+h-12}" text-anchor="end" font-size="9" font-weight="700" fill="#6b7a8c">bot</text>`;
+  banks.forEach(([id,fill,txt,name],b)=>{
+    const bx=x+b*bw;
+    g+=`<rect x="${bx}" y="${y}" width="${bw}" height="${h}" fill="${fill}" stroke="#111" stroke-width="2"/>`;
+    for(let i=0;i<3;i++){ const cx=bx+bw*(0.2+0.3*i);
+      g+=`<circle cx="${cx}" cy="${y+16}" r="7" fill="#0d0d0d" stroke="#555"/><rect x="${cx-6}" y="${y+30}" width="12" height="11" rx="2" fill="#f07c22" stroke="#9c4a0e"/>
+          <rect x="${cx-6}" y="${y+h-41}" width="12" height="11" rx="2" fill="#f07c22" stroke="#9c4a0e"/><circle cx="${cx}" cy="${y+h-16}" r="7" fill="#0d0d0d" stroke="#555"/>`; }
+    g+=`<text x="${bx+bw/2}" y="${y+h/2+5}" text-anchor="middle" font-size="12.5" font-weight="800" fill="${txt}">${name}</text>`;
+  });
+  g+=`<line x1="${x}" y1="${y+h/2-14}" x2="${x+w}" y2="${y+h/2-14}" stroke="#111" stroke-width="1.2" opacity=".6"/>`;
+  Object.entries(T).forEach(([k,t])=>{ const [b,slot]=k.split(":"); const bi="gobw".indexOf(b); if(bi<0||!slot) return;
+    const [px,py]=pos(bi,slot[0],+slot[1]-1);
+    g+= slot[0]==="T" ? lead(px,py,px,6,t.color) : lead(px,py,px,H-34,t.color);
+    g+=dot(px,py,t.color); });
+  return fsvg(356,H,g);
+}
+function figLTX(T, model){
+  const H = model==="modbus" ? 214 : 410, pw=21;
+  const blocks=[["pwr",["DC In","GND","SHLD"],"Power"],["r1",["DC Out","B−","A+","GND","SHLD"],"RS-485 1"],["r2",["DC Out","B−","A+","GND","SHLD"],"RS-485 2"]];
+  let g=`<rect x="8" y="58" width="344" height="${H-66}" rx="10" fill="#c62828" stroke="#7f1212" stroke-width="2"/>
+    <text x="344" y="80" text-anchor="end" font-size="15" font-weight="800" fill="#fff">LTX-100</text>`;
+  const pos={}; let x=27; const y1=98;
+  blocks.forEach(([id,labels,cap])=>{
+    labels.forEach((l,i)=>{ const tx=x+i*pw, key=id==="pwr"?`pwr${i}`:`${id}_${i}`; pos[key]=[tx+pw/2,y1];
+      g+=`<rect x="${tx}" y="${y1}" width="${pw}" height="34" fill="#a9afb5" stroke="#555"/><rect x="${tx+3}" y="${y1+3}" width="${pw-6}" height="10" rx="1.5" fill="#ef7d32"/>
+          <rect x="${tx+4}" y="${y1+19}" width="${pw-8}" height="11" rx="1" fill="#2a2a2a"/>
+          <text transform="translate(${tx+pw/2+3.5},${y1+40}) rotate(-90)" text-anchor="end" font-size="9.5" font-weight="700" fill="#fff">${l}</text>`; });
+    g+=`<text x="${x+labels.length*pw/2}" y="${y1+96}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">${cap}</text>`;
+    x+=labels.length*pw+10;
+  });
+  if(model!=="modbus"){
+    const cards = model==="hart" ? [[40,"HART"],[200,"HART"]] : [[14,"4-20 mA"],[186,"4-20 mA"]];
+    cards.forEach(([cx,kind],ci)=>{ const n=ci+1, cw=kind==="HART"?120:160, cy=206;
+      g+=`<rect x="${cx}" y="${cy}" width="${cw}" height="122" rx="4" fill="#9e1414" stroke="#3a0707" stroke-width="1.5"/>
+          <text x="${cx+cw/2}" y="${cy+16}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">Expansion card ${n} · ${kind}</text>`;
+      const labels = kind==="HART" ? [["dc","DC OUT (+)"],["sig","SIGNAL (−)"]] : [1,2,3,4].flatMap(k=>[[`out${k}`,`OUT ${k}`],[`in${k}`,`IN ${k}`]]);
+      const tw = kind==="HART"?30:18, x0=cx+(cw-labels.length*tw)/2, ty=cy+80;
+      labels.forEach(([k,l],i)=>{ const tx=x0+i*tw, key=`c${n}_${k}`; pos[key]=[tx+tw/2,ty+34];
+        g+=`<text transform="translate(${tx+tw/2+3.5},${ty-4}) rotate(-90)" font-size="${kind==="HART"?9:8}" font-weight="700" fill="#fff">${l}</text>
+            <rect x="${tx}" y="${ty}" width="${tw}" height="34" fill="#a9afb5" stroke="#555"/><rect x="${tx+3}" y="${ty+3}" width="${tw-6}" height="10" rx="1.5" fill="#ef7d32"/>
+            <rect x="${tx+4}" y="${ty+19}" width="${tw-8}" height="11" rx="1" fill="#2a2a2a"/>`; });
+    });
+  }
+  Object.entries(T).forEach(([k,t])=>{ const p=pos[k]; if(!p) return;
+    if(k.startsWith("c")) g+=lead(p[0],p[1],p[0],H-6,t.color)+dot(p[0],p[1]-4,t.color);
+    else g+=lead(p[0],p[1],p[0],8,t.color)+dot(p[0],p[1]+4,t.color); });
+  return fsvg(360,H,g);
+}
+function figNCR(T, model){
+  const x=20,y=16,w=320,h=190,top=y+h*0.48,H=300, tb=y+148;
+  const tx={1:x+75,2:x+107,3:x+203,4:x+235,5:x+267}, nums=model==="modbus"?[1,2,3,4,5]:[1,2];
+  let g=`<path d="M${x},${y+h} L${x},${top} A${w/2},${top-y} 0 0 1 ${x+w},${top} L${x+w},${y+h} Z" fill="#f2f3f5" stroke="#14202e" stroke-width="2.5"/>
+    <text x="${x+91}" y="${y+92}" text-anchor="middle" font-size="9.5">${model==="modbus"?"power supply":"4…20 mA / HART"}</text>`;
+  if(model==="modbus") g+=`<text x="${x+235}" y="${y+74}" text-anchor="middle" font-size="9.5" font-weight="800">MODBUS</text>
+    ${[["D0(+)",3],["D1(−)",4],["IS GND",5]].map(([l,n])=>`<text x="${tx[n]}" y="${y+94}" text-anchor="middle" font-size="8.5" font-weight="700">${l}</text>`).join("")}
+    <rect x="${x+140}" y="${y+119}" width="30" height="14" rx="2" fill="#fff" stroke="#14202e"/><rect x="${x+144}" y="${y+122}" width="10" height="8" fill="#14202e"/>
+    <text x="${x+155}" y="${y+146}" text-anchor="middle" font-size="9">off on</text>`;
+  nums.forEach(n=>{ const cx=tx[n]; g+=`<rect x="${cx-15}" y="${y+100}" width="30" height="48" fill="#fff" stroke="#14202e" stroke-width="1.8"/>
+      <rect x="${cx-8}" y="${y+106}" width="16" height="16" fill="#fff" stroke="#14202e"/><rect x="${cx-9}" y="${y+134}" width="18" height="9" rx="3" fill="#fff" stroke="#14202e"/>`; });
+  nums.forEach(n=>{ const t=T[String(n)]; if(t) g+=lead(tx[n],tb,tx[n],H-6,t.color)+dot(tx[n],tb,t.color); });
+  [[1,"(+)1"],[2,"2(−)"],[3,"3"],[4,"4"],[5,"5"]].filter(([n])=>nums.includes(n)).forEach(([n,l])=>g+=halo(tx[n],y+170,l));
+  return fsvg(360,H,g);
+}
+function figPigtail(T, roles, name){
+  const n=roles.length, H=250; let g=`<rect x="150" y="6" width="60" height="78" rx="10" fill="#6b7277" stroke="#3b4146"/>
+    <text x="180" y="50" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">${esc(name)}</text>
+    <text x="180" y="64" text-anchor="middle" font-size="9" fill="#fff">cable</text>`;
+  roles.forEach((r,i)=>{ const ex=n===1?180:60+i*(240/(n-1)), t=T[r]||{color:""};
+    g+=`<path d="M${170+i*(20/Math.max(1,n-1))},84 C${170+i*(20/Math.max(1,n-1))},140 ${ex},130 ${ex},176" fill="none" stroke="#0008" stroke-width="7.4" stroke-linecap="round"/>
+        <path d="M${170+i*(20/Math.max(1,n-1))},84 C${170+i*(20/Math.max(1,n-1))},140 ${ex},130 ${ex},176" fill="none" stroke="${wireStroke(t.color)||"#cfd6de"}" stroke-width="5" stroke-linecap="round"/>`;
+    g+=dot(ex,180,t.color)+halo(ex,204,roleLabel(r))+`<text x="${ex}" y="220" text-anchor="middle" font-size="10" fill="#3a4a5c">${t.color||"not set"}</text>`; });
+  return fsvg(360,H,g);
+}
+function devTerms(){
+  const D={}; const add=(dev,key,info)=>{ if(!dev||!key) return; (D[dev]=D[dev]||{})[key]=info; };
+  connections().forEach(c=>c.wires.forEach(w=>{
+    add(c.fromDev,w.fk,{color:w.color,lbl:w.a,to:`${c.to} · ${w.b}`});
+    add(c.toDev,w.tk,{color:w.color,lbl:w.b,to:`${c.from} · ${w.a}`}); }));
+  return D;
+}
+function deviceCards(){
+  const D=devTerms(), ids=[];
+  if(has("psdc")) ids.push("psdc"); if(has("tc100")) ids.push("tc"); if(has("ltx")) ids.push("ltx");
+  S.sensors.forEach(s=>ids.push(s.id));
+  return ids.map(id=>{
+    const T=D[id]||{}; let title, fig, sub="";
+    if(id==="psdc"){ title="PSDC"; fig=figPSDC(T); }
+    else if(id==="tc"){ title="TC-100"; fig=figTC(T); }
+    else if(id==="ltx"){ const m=ltxPartId().replace("ltx-",""); title=`LTX-100 (${m==="4-20"?"4-20 mA":m==="hart"?"HART":"Modbus"})`; fig=figLTX(T, m==="4-20"?"analog":m); }
+    else { const s=S.sensors.find(x=>x.id===id), p=P[s.sku], i=S.sensors.indexOf(s);
+      title=sensorLabel(s,i); sub=esc(s.vessel)||"";
+      if(p.family==="ncr") fig=figNCR(T, p.proto==="modbus"?"modbus":"loop");
+      else if(p.family==="cncr") fig=figPigtail(T, sensorRoles(s.sku), "CNCR");
+      else fig=`<div style="text-align:center">${prodPic(p,"thumbpic")}<p class="muted">Terminal drawing coming soon.</p></div>`; }
+    const rows=Object.entries(T);
+    return `<div class="card devfig"><h3>${title}${sub?` <span class="muted" style="font-weight:400">· ${sub}</span>`:""}</h3>${fig}
+      ${rows.length?`<table class="t"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
+      ${rows.map(([k,t])=>`<tr><td>${esc(t.lbl)}</td><td style="white-space:nowrap">${t.color?sw(t.color)+" "+esc(t.color):'<span class="muted">not set</span>'}</td><td>${esc(t.to)}</td></tr>`).join("")}</tbody></table>`
+      :`<p class="muted">No wires land here yet.</p>`}</div>`;
+  }).join("");
+}
+
+/* ---------- Step: power & bench setup ---------- */
 function rBench(){
-  const fams = SENSOR_FAMILIES.filter(has);
   const chk=(k,t)=>`<label class="check"><input type="checkbox" data-check="${k}" ${S.checks[k]?"checked":""}><span>${t}</span></label>`;
   const dev = deviceLandings();
   return `
   <h2>Power & bench setup</h2>
   <div class="callout"><b>Bench it first.</b> Lay every part out on a bench, wire it with short leads, and get every sensor reading <b>before</b> anything goes up on the bin.</div>
-  <div class="card"><h3>Safety</h3>
-    ${chk("pw_off","AC power is OFF and locked out while you wire.")}
-  </div>
-  <h3 style="margin:16px 2px 8px">Where wires land</h3>
-  ${dev.map(([name,rows],i)=>`<details class="card" ${i<2?"open":""}><summary><b>${esc(name)}</b><span class="muted">${rows.length} wires</span></summary>
-    <table class="t" style="margin-top:8px"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr><td>${esc(r.t)}</td><td style="white-space:nowrap">${sw(r.color)} ${esc(r.color)}</td><td>${esc(r.to)}</td></tr>`).join("")}</tbody></table>
-  </details>`).join("") || `<div class="callout warn">Add items on the order step to see landings.</div>`}
-  <h3 style="margin:16px 2px 8px">Configure sensors</h3>
-  ${fams.map(f=>{
-    const url=CONFIG.SETUP_LINKS[f];
-    const mine=S.sensors.filter(s=>P[s.sku].family===f);
-    return `<div class="card"><h3>${NAMES[f]}</h3>
-      ${url?`<button class="linkbtn" style="width:100%" data-opensetup="${f}">Open ${NAMES[f]} setup <span>›</span></button>`
+  <div class="card"><h3>Safety</h3>${chk("pw_off","AC power is OFF and locked out while you wire.")}</div>
+  <details class="card"><summary><b>Where wires land</b><span class="muted">tap to open</span></summary>
+    ${dev.map(([name,rows])=>`<h4 style="margin:12px 0 4px">${esc(name)}</h4><table class="t"><thead><tr><th>Terminal</th><th>Wire</th><th>Goes to</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${esc(r.t)}</td><td style="white-space:nowrap">${r.color?sw(r.color)+" "+esc(r.color):'<span class="muted">not set</span>'}</td><td>${esc(r.to)}</td></tr>`).join("")}</tbody></table>`).join("")
+      || `<p class="muted">Add items on the order step to see landings.</p>`}
+  </details>
+  <div class="card"><h3>Whole system overview</h3><div class="diagram">${wireDiagramSVG()}</div>${LEGEND}</div>
+  <h3 style="margin:18px 2px 8px">Terminals on each device</h3>
+  ${deviceCards() || `<div class="callout warn">Add items on the order step to see the terminals.</div>`}`;
+}
+
+/* ---------- Step: configure sensors ---------- */
+const SETUP_PAGES=[{file:"bluetooth.html",name:"Bluetooth app setup"},{file:"bindisc.html",name:"BinDisc setup"}];
+let foundPages=null;
+async function probePages(){
+  if(foundPages) return; foundPages=[];
+  for(const p of SETUP_PAGES){ try{ const r=await fetch(p.file,{method:"HEAD",cache:"no-store"}); if(r.ok) foundPages.push(p); }catch(e){} }
+  if(foundPages.length && STEPS[S.step].id==="configure" && S.mode==="wizard") render();
+}
+function rConfigure(){
+  const chk=(k,t)=>`<label class="check"><input type="checkbox" data-check="${k}" ${S.checks[k]?"checked":""}><span>${t}</span></label>`;
+  const fams=SENSOR_FAMILIES.filter(has);
+  return `
+  <h2>Configure sensors</h2>
+  <p class="sub">Still on the bench: power up, set up each sensor, and check that it reads.</p>
+  ${(foundPages||[]).length?`<div class="card"><h3>Setup tools</h3>${foundPages.map(p=>`<button class="linkbtn" style="width:100%" data-openpage="${p.file}" data-name="${esc(p.name)}">Open ${esc(p.name)} <span>›</span></button>`).join("")}</div>`:""}
+  ${fams.map(f=>{ const url=CONFIG.SETUP_LINKS[f], mine=S.sensors.filter(s=>P[s.sku].family===f);
+    return `<div class="card"><div class="sensorhead">${famPic(SENSOR_ROW.find(r=>r.fam===f)||{icon:"radar"})}<div class="grow"><b>${NAMES[f]}</b></div></div>
+      ${url?`<button class="linkbtn" style="width:100%" data-opensetup="${f}">Open ${NAMES[f]} setup guide <span>›</span></button>`
            :`<div class="linkbtn disabled">${NAMES[f]} setup guide coming soon</div>`}
       ${mine.map(s=>`<label class="check"><input type="checkbox" data-sensor="${s.id}" data-k="configured" ${s.configured?"checked":""}><span>Configured: <b>${esc(s.vessel)||sensorLabel(s,S.sensors.indexOf(s))}</b></span></label>`).join("")}
     </div>`;}).join("") || `<div class="callout warn">No sensors on this order.</div>`}
   <div class="card"><h3>Bench test</h3>
-    ${chk("b_power","Power on: 24 VDC present at the sensors.")}
+    ${chk("b_power","Power on: 24 VDC at every sensor.")}
     ${has("ltx")?chk("b_ltx","LTX powers up."):""}
     ${chk("b_read","Every sensor shows a reading on the Bluetooth app or BinDisc.")}
     ${chk("b_off","Power off before moving parts to the bin.")}
@@ -987,9 +1151,52 @@ function rPlace(){
   </div>`;
 }
 
+/* ---------- Step: install on the bins ---------- */
+function rInstall(){
+  const base=rPlace().replace("<h2>Where to mount the sensor</h2>","<h2>Install on the bins</h2>").replace('<p class="sub">On the bin roof, in the green ring.</p>','<p class="sub">Mount each sensor on its bin roof, in the green ring.</p>');
+  return base+`
+  <div class="card"><h3>Want a step-by-step illustration?</h3>
+    <p class="muted" style="margin:0 0 10px">One screen per item: mount it, run its cable, land its wires. Swipe up for the next one.</p>
+    <button class="btn primary" style="width:100%" id="walkBtn">${S.checks.walk_done?"✓ Reviewed — show it again":"Show me step by step"}</button>
+  </div>`;
+}
+function walkSlides(){
+  const sl=[], C=connections();
+  const items=PRODUCTS.filter(p=>q(p.sku)).map(p=>`${q(p.sku)}× ${p.name} ${p.variant}`);
+  sl.push({k:"Overview",t:`Install ${items.length} item${items.length>1?"s":""}`,
+    pic:`<div class="partgrid">${PRODUCTS.filter(p=>q(p.sku)).map(p=>`<div>${prodPic(p)}<b>${q(p.sku)}×</b> ${p.name}</div>`).join("")}</div>`,body:`<p class="muted" style="margin:0">Each screen is one job. Swipe up when it's done.</p>`});
+  S.sensors.forEach((s,i)=>sl.push({k:"Mount",t:`Mount ${P[s.sku].name} ${P[s.sku].variant} on ${esc(s.vessel||"bin "+(i+1))}`,
+    pic:prodPic(P[s.sku]),body:`<ul><li>1/3 to 1/2 of the way from the sidewall to the center</li><li>Away from fill streams</li><li>Clear of ladders and braces</li></ul>`}));
+  if(has("tc100")) sl.push({k:"Mount",t:"Mount the TC-100",pic:partPic("tc-100"),body:`<ul><li>Where every sensor cable can reach it</li><li>Glands facing down or to the sides</li></ul>`});
+  if(has("psdc")) sl.push({k:"Mount",t:"Mount the PSDC",pic:partPic("psdc"),body:`<ul><li>Near the AC supply</li><li>Power OFF and locked out</li></ul>`});
+  if(has("ltx")) sl.push({k:"Mount",t:"Mount the LTX",pic:partPic(ltxPartId()),body:`<ul><li>Antennas pointing up</li>${netUsed().includes("cellular")?"<li>Where it gets a good cellular signal</li>":""}</ul>`});
+  C.filter(c=>c.wires.length).forEach(c=>sl.push({k:"Run & land",t:esc(c.title),pic:connSVG(c),
+    body:`<ul>${c.wires.map(w=>`<li>${w.color?sw(w.color)+" ":""}<b>${esc(w.a)}</b> → ${esc(w.b)}</li>`).join("")}</ul>${c.note?`<p class="muted" style="margin:4px 0 0">${esc(c.note)}</p>`:""}`}));
+  sl.push({k:"Finish",t:"Power up and verify",pic:"",body:`<ul><li>Power on</li><li>Every sensor reads on the Bluetooth app or BinDisc</li>${has("ltx")?"<li>Readings appear in BinCloud</li>":""}</ul>
+    <button class="btn primary" style="width:100%;margin-top:12px" id="walkDone">Done — everything is installed</button>`});
+  return sl;
+}
+let walkIO=null;
+function openWalk(){
+  const sl=walkSlides(), box=document.getElementById("walkScroll");
+  box.innerHTML=sl.map((x,i)=>`<section class="slide" data-n="${i+1}">
+    <div class="kicker">${x.k} · ${i+1} of ${sl.length}</div><h2>${x.t}</h2>
+    ${x.pic?`<div class="pic">${x.pic}</div>`:`<div class="pic"></div>`}
+    <div>${x.body}</div>
+    ${i<sl.length-1?`<div class="hint">Swipe up for the next step ↑</div>`:""}</section>`).join("");
+  document.getElementById("walk").classList.remove("hidden"); document.body.style.overflow="hidden"; box.scrollTop=0;
+  const cnt=document.getElementById("walkCount"); cnt.textContent=`1 / ${sl.length}`;
+  if(walkIO) walkIO.disconnect();
+  walkIO=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) cnt.textContent=`${e.target.dataset.n} / ${sl.length}`; }),{root:box,threshold:.6});
+  box.querySelectorAll(".slide").forEach(x=>walkIO.observe(x));
+  const d=document.getElementById("walkDone"); if(d) d.onclick=()=>{ S.checks.walk_done=true; save(); track("walk_done"); closeWalk(); render(); };
+  track("walk_open",{slides:sl.length});
+}
+function closeWalk(){ document.getElementById("walk").classList.add("hidden"); document.body.style.overflow=""; }
+
 /* ---------- System wire diagram generator ---------- */
 const wireStroke = c => c==="white" ? "#b8c0c8" : (COLORS[c]||null);
-function wireDiagramSVG(){
+function wireDiagramSVG(forReport=false){
   const tc=has("tc100"), ltx=has("ltx"), psdc=has("psdc"), disp=has("c100");
   const sens=S.sensors.filter(s=>P[s.sku].proto==="modbus" || !P[s.sku].proto);
   const analog=S.sensors.filter(s=>["hart","analog"].includes(P[s.sku].proto));
@@ -1000,7 +1207,7 @@ function wireDiagramSVG(){
   let g=`<svg viewBox="0 0 ${Wd} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Arial" font-size="13">
   <rect width="${Wd}" height="${H}" fill="#fff"/>
   <text x="16" y="26" font-weight="800" font-size="16">System wiring — ${esc(S.job.site||S.job.customer||"this job")}</text>
-  <text x="${Wd-16}" y="26" text-anchor="end" fill="#c0392b" font-size="11">DRAFT from order — verify against BinMaster drawings before energizing</text>`;
+  ${forReport?"":`<text x="${Wd-16}" y="26" text-anchor="end" fill="#c0392b" font-size="11">Generated from the order — check against BinMaster drawings</text>`}`;
   const box=(x,y,w,h,t,sub,fill="#f3f5f8")=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill}" stroke="#14202e" stroke-width="2"/>
     <text x="${x+w/2}" y="${y+22}" text-anchor="middle" font-weight="800">${t}</text>${sub?`<text x="${x+w/2}" y="${y+40}" text-anchor="middle" font-size="11" fill="#3a4a5c">${sub}</text>`:""}`;
   const line=(pts,c,w=3,dash="")=>`<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="${w}" ${dash?`stroke-dasharray="${dash}"`:""} stroke-linejoin="round"/>`;
@@ -1022,7 +1229,7 @@ function wireDiagramSVG(){
   if(tc){
     // TC-100 with four banks
     const bx=420,by=210,bw=320,bh=90, cw=bw/4;
-    const banks=[["0 V","#5b5f66","#fff"],["+24 V","#f0521d","#fff"],["RS-485","#1e88f0","#fff"],["RS-485","#ffffff","#14202e"]];
+    const banks=[["Ground","#2f3133","#fff"],["Power","#c62828","#fff"],["485+","#1f5fd6","#fff"],["485−","#c9cdd1","#14202e"]];
     banks.forEach((b,i)=>{ g+=`<rect x="${bx+i*cw}" y="${by}" width="${cw}" height="${bh}" fill="${b[1]}" stroke="#14202e" stroke-width="2"/>
       <text x="${bx+i*cw+cw/2}" y="${by+bh/2+5}" text-anchor="middle" fill="${b[2]}" font-weight="800">${b[0]}</text>`; });
     g+=`<text x="${bx+bw+10}" y="${by+bh/2+5}" font-weight="800">TC-100</text>`;
@@ -1035,9 +1242,9 @@ function wireDiagramSVG(){
     g+=line(`230,110 ${xc(2)+10},110 ${xc(2)+10},${top}`,col.a,4);
     g+=line(`230,124 ${xc(3)+10},124 ${xc(3)+10},${top}`,col.b,4);
     g+=line(`230,96 ${xc(3)+50},96 ${xc(3)+50},${bot+60}`,col.sh,2,"5 4");
-    g+=`<text x="250" y="90" font-size="11">RS-485 cable (blue / white + shield)</text>`;
-    if(ltx){ g+=line(`230,140 270,140 270,440 230,440`,col.gnd,2); g+=line(`230,150 260,150 260,470 230,470`,col.pwr,2);
-      g+=`<text x="244" y="390" font-size="10" transform="rotate(-90 244 390)">LTX 24 VDC</text>`; }
+    g+=`<text x="250" y="90" font-size="11">LTX cable</text>`;
+    // LTX power comes through the same LTX cable from the TC-100 (matches the terminal drawings)
+    if(ltx){ g+=line(`230,138 ${xc(0)+10},138 ${xc(0)+10},${top}`,col.gnd,3); g+=line(`230,152 ${xc(1)+10},152 ${xc(1)+10},${top}`,col.pwr,3); }
     // sensors
     const n=Math.max(shown.length,1), sx0=400, span=380;
     shown.forEach((s,i)=>{
@@ -1086,8 +1293,9 @@ function wiringTable(){
     <td>${(s.wires||[]).map(w=>`<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">${sw(w.color)}${esc(w.color)}${s.splice&&w.field&&w.purpose!=="none"?` → ${sw(w.field)}${esc(w.field)}`:""} = ${PUR[w.purpose]?.label||""}</div>`).join("")||'<span class="muted">not entered</span>'}</td></tr>`).join("");
   return `<table class="t"><thead><tr><th>Sensor</th><th>Sensor wire → my wire = job</th></tr></thead><tbody>${rows||'<tr><td colspan=2 class="muted">No sensors</td></tr>'}</tbody></table>`;
 }
-const LEGEND = `<div class="legend"><span><i style="background:#222"></i>0 V</span><span><i style="background:#e53935"></i>+24 VDC</span>
-    <span><i style="background:#1e88f0"></i>RS-485 (blue bank)</span><span><i style="background:#b8c0c8"></i>RS-485 (white bank)</span><span><i style="background:#888"></i>Shield</span></div>`;
+const LEGEND = `<div class="legend"><span><i style="background:#2f3133"></i>Ground (black bank)</span><span><i style="background:#c62828"></i>Power (red bank)</span>
+    <span><i style="background:#1f5fd6"></i>485+ (blue bank)</span><span><i style="background:#c9cdd1"></i>485− (gray bank)</span></div>
+    <p class="muted" style="margin:6px 0 0;font-size:13px">Wires are drawn in the colours you picked on the Identify wires step.</p>`;
 function rWiring(){
   const C=connections();
   return `
@@ -1098,21 +1306,111 @@ function rWiring(){
   ${C.map((c,i)=>connCard(c,i+1)).join("")}`;
 }
 
-/* ---------- Step: done ---------- */
+/* ---------- Step: finish & report ---------- */
+function verifyItems(){
+  const n=S.sensors.length, conf=S.sensors.filter(s=>s.configured).length;
+  return [
+    ["AC power off and locked out while wiring", !!S.checks.pw_off],
+    [`Sensors configured (${conf} of ${n})`, n>0 && conf===n],
+    ["24 VDC at every sensor", !!S.checks.b_power],
+    ["Every sensor reads on the Bluetooth app or BinDisc", !!S.checks.b_read],
+    ["Mounted 1/3–1/2 from the sidewall, away from fill streams and obstructions", !!(S.checks.pl_zone&&S.checks.pl_fill&&S.checks.pl_obs)],
+    ["Step-by-step install reviewed", !!S.checks.walk_done]
+  ];
+}
 function rDone(){
-  const vessels=S.sensors.filter(s=>s.vessel).length, conf=S.sensors.filter(s=>s.configured).length;
+  const v=verifyItems(), ok=v.filter(x=>x[1]).length;
   return `
-  <h2>You're set.</h2>
-  <p class="sub">Your Quick Start Guide is built from this install.</p>
-  ${S.bench.seconds?`<div class="card statcard"><div style="font-size:30px">⏱</div><div class="grow"><div class="muted">You finished in</div><div class="big">${fmtTime(S.bench.seconds)}</div>
-    ${benchStats&&benchStats.installs>=5?`<div class="muted" style="font-size:12px">Typical: ${benchStats.median_minutes} min</div>`:""}</div></div>`:""}
-  <div class="card"><div class="chips">
-    <span class="chip">${S.sensors.length} sensors</span><span class="chip">${vessels} vessels named</span>
-    <span class="chip">${conf} configured on bench</span></div></div>
-  <button class="btn primary" style="width:100%;margin-bottom:10px" id="mailBtn2">✉ Email me the guide + recap</button>
-  <button class="btn ghost" style="width:100%;margin-bottom:10px" id="printBtn2">Print / save as PDF</button>
-  <button class="btn ghost" style="width:100%;margin-bottom:10px" id="scrollBtn">Read as one scrolling guide</button>
+  <h2>Finish & send your report</h2>
+  <p class="sub">The installer report shows the sensors, the steps taken and the checks that prove it works. Send it to your customer or your boss.</p>
+  <div class="card"><h3>${ok===v.length?"✓ Verified":"Checks"} <span class="muted" style="font-weight:400">${ok} of ${v.length}</span></h3>
+    <ul class="verify">${v.map(([t,y])=>`<li><span style="color:${y?"var(--ok)":"var(--mute)"};font-weight:900">${y?"✓":"○"}</span><span>${t}</span></li>`).join("")}</ul></div>
+  ${S.bench.seconds?`<div class="card"><b>Install time:</b> ${fmtTime(S.bench.seconds)}</div>`:""}
+  <button class="btn ghost" style="width:100%;margin-bottom:10px" id="previewReport">Preview the report</button>
   <button class="btn ghost" style="width:100%" id="nextInstall">+ Start next install</button>`;
+}
+
+/* ---------- Installer report (BinMaster) ---------- */
+let LOGO=null;
+async function logoData(){
+  if(LOGO!==null) return LOGO;
+  for(const f of ["BinMaster_Logo.png","binmaster-logo.png","img/binmaster-logo.png","img/BinMaster_Logo.png"]){
+    try{ const r=await fetch(f,{cache:"no-store"}); if(r.ok){ const b=await r.blob(); LOGO=await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(b); }); return LOGO; } }catch(e){}
+  }
+  return LOGO="";
+}
+const blobToURL = b => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); });
+async function buildReport(){
+  const j=S.job, v=verifyItems(), ok=v.every(x=>x[1]), logo=await logoData(), C=connections();
+  const photos={}; for(const s of S.sensors){ if(s.photo){ try{ const b=await PDB.get(s.id); if(b) photos[s.id]=await blobToURL(b); }catch(e){} } }
+  const items=PRODUCTS.filter(p=>q(p.sku));
+  const when=d=>new Date(d).toLocaleString([], {dateStyle:"medium",timeStyle:"short"});
+  const steps=[]; const seen={}; S.log.forEach(l=>{ seen[l.id]=l; }); STEPS.forEach(st=>{ if(seen[st.id]) steps.push(seen[st.id]); });
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Installation Report – ${esc(j.site||j.customer||"BinMaster")}</title>
+<style>
+body{margin:0;background:#f4f6f9;color:#14202e;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.page{max-width:820px;margin:0 auto;background:#fff;padding:26px 24px 34px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:3px solid #c8102e;padding-bottom:12px}
+.top img{height:46px}.brand{font:900 28px/1 Arial,sans-serif;color:#c8102e}
+h1{font-size:22px;margin:16px 0 2px}h2{font-size:16px;margin:22px 0 8px;padding-bottom:4px;border-bottom:1px solid #dde3ea}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:14px;margin-top:8px}.meta b{color:#3a4a5c;font-weight:600}
+.status{margin-top:14px;padding:12px 14px;border-radius:10px;font-weight:800}.ok{background:#e3f4ea;color:#1f7a44}.open{background:#fff4dc;color:#8a5a00}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:7px 6px;border-bottom:1px solid #e6eaef;vertical-align:top}th{font-size:12px;color:#6b7a8c;text-transform:uppercase}
+.sw{display:inline-block;width:13px;height:13px;border-radius:50%;border:1.5px solid #0003;vertical-align:-2px;margin-right:5px}
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.part{border:1px solid #e6eaef;border-radius:10px;padding:8px;text-align:center;font-size:13px}
+.part svg{width:100%;height:86px}.photo{width:150px;border-radius:6px;border:1px solid #ddd}
+.diagram svg{width:100%;height:auto}.foot{margin-top:26px;color:#6b7a8c;font-size:12px;text-align:center}
+@media print{body{background:#fff}.page{padding:0}h2{break-after:avoid}tr,.part{break-inside:avoid}}
+</style></head><body><div class="page">
+<div class="top">${logo?`<img src="${logo}" alt="BinMaster">`:`<div class="brand">BinMaster</div>`}<div style="text-align:right;font-size:13px;color:#3a4a5c">Installation Report<br>${when(S.finished||Date.now())}</div></div>
+<h1>${esc(j.site||"Site")}${j.customer?` · ${esc(j.customer)}`:""}</h1>
+<div class="meta"><div><b>Company:</b> ${esc(j.customer)||"—"}</div><div><b>Site:</b> ${esc(j.site)||"—"}</div>
+<div><b>Installer:</b> ${esc(j.installerEmail)||"—"}</div><div><b>Install time:</b> ${S.bench.seconds?fmtTime(S.bench.seconds):"—"}</div></div>
+<div class="status ${ok?"ok":"open"}">${ok?"✓ Verified: every check is complete.":`Open items: ${v.filter(x=>!x[1]).length} check${v.filter(x=>!x[1]).length>1?"s":""} not yet complete.`}</div>
+<h2>Verification</h2><table>${v.map(([t,y])=>`<tr><td style="width:28px;font-weight:900;color:${y?"#1f7a44":"#8a5a00"}">${y?"✓":"○"}</td><td>${t}</td></tr>`).join("")}</table>
+<h2>Sensors</h2><table><thead><tr><th>#</th><th>Sensor</th><th>Vessel</th><th>Configured</th><th>Yellow sheet</th></tr></thead><tbody>
+${S.sensors.map((s,i)=>`<tr><td>${i+1}</td><td>${P[s.sku].name} ${P[s.sku].variant}</td><td>${esc(s.vessel)||"—"}</td><td>${s.configured?"✓":"—"}</td><td>${photos[s.id]?`<img class="photo" src="${photos[s.id]}" alt="Yellow sheet">`:"—"}</td></tr>`).join("")||'<tr><td colspan="5">No sensors</td></tr>'}</tbody></table>
+<h2>Equipment</h2><div class="parts">${items.map(p=>`<div class="part">${prodPic(p)}<div><b>${q(p.sku)}×</b> ${p.name} ${p.variant}</div></div>`).join("")}</div>
+<h2>Wiring</h2>
+${C.filter(c=>c.wires.length).map(c=>`<p style="margin:10px 0 4px"><b>${esc(c.title)}</b></p><table>${c.wires.map(w=>`<tr><td>${esc(w.a)}</td><td style="white-space:nowrap">${w.color?`<span class="sw" style="background:${COLORS[w.color]}"></span>${esc(w.color)}`:"not set"}</td><td>${esc(w.b)}</td></tr>`).join("")}</table>`).join("")}
+<div class="diagram" style="margin-top:12px">${wireDiagramSVG(true)}</div>
+<h2>Steps taken</h2><table>${steps.map(l=>`<tr><td>✓ ${esc(l.title)}</td><td style="text-align:right;color:#6b7a8c">${when(l.at)}</td></tr>`).join("")||"<tr><td>—</td></tr>"}</table>
+<div class="foot">Generated by the BST Installer app · Version ${CONFIG.APP_VERSION}</div>
+</div></body></html>`;
+}
+function reportText(){
+  const j=S.job, v=verifyItems();
+  return `Installation report – ${j.site||""}${j.customer?" ("+j.customer+")":""}\n`+
+    v.map(([t,y])=>`${y?"✓":"○"} ${t}`).join("\n")+`\n\nSensors:\n`+S.sensors.map((s,i)=>`${i+1}. ${P[s.sku].name} ${P[s.sku].variant} – ${s.vessel||"—"}`).join("\n")+
+    `\n\nFull report attached.`;
+}
+let reportHTML=null;
+async function openReport(){
+  const sh=document.getElementById("rsheet"), st=document.getElementById("rStatus");
+  st.textContent="Building the report…"; sh.classList.remove("hidden"); document.body.style.overflow="hidden";
+  reportHTML=await buildReport();
+  document.getElementById("rFrame").srcdoc=reportHTML; st.textContent="";
+  track("report_open");
+}
+function closeReport(){ document.getElementById("rsheet").classList.add("hidden"); document.body.style.overflow=""; }
+async function sendReport(){
+  const st=document.getElementById("rStatus"); if(!reportHTML) reportHTML=await buildReport();
+  const name=`Installation Report - ${(S.job.site||S.job.customer||"BinMaster").replace(/[^\w\- ]+/g,"").trim()}.html`;
+  const file=new File([reportHTML],name,{type:"text/html"});
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({title:"Installation report",text:reportText(),files:[file]}); track("report_sent",{via:"share"}); st.textContent="Sent ✓"; return; }
+    catch(e){ if(e.name==="AbortError") return; }
+  }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  st.textContent="Report saved to your downloads. Attach it to an email to your customer or boss."; track("report_sent",{via:"download"});
+}
+function finishInstall(){
+  if(!S.finished) S.finished=new Date().toISOString();
+  if(!S.log.find(l=>l.id==="done")) S.log.push({id:"done",title:"Finish & report",at:S.finished});
+  stopTimer(); snap(); remember(); rememberVessels();
+  track("complete",{qty:S.qty,sensors:S.sensors.length,seconds:S.bench.seconds,verified:verifyItems().every(x=>x[1])});
+  save(); openReport();
 }
 
 /* ---------- Guide (scroll + print) ---------- */
@@ -1155,6 +1453,13 @@ function openSetup(f){
   document.getElementById("sheet").classList.remove("hidden");
   document.body.style.overflow="hidden";
   track("setup_open",{family:f});
+}
+function openSetupPage(file,name){
+  document.getElementById("sheetTitle").textContent=name;
+  document.getElementById("sheetExt").href=file;
+  document.getElementById("sheetFrame").src=file;
+  document.getElementById("sheet").classList.remove("hidden"); document.body.style.overflow="hidden";
+  track("setup_open",{page:file});
 }
 function closeSetup(){
   document.getElementById("sheet").classList.add("hidden");
@@ -1317,6 +1622,13 @@ function bind(){
       if(el.type!=="text") render(); });
   });
   W.querySelectorAll("[data-wire]").forEach(el=>el.onchange=()=>{const s=findS(el.dataset.wire); s.wires[+el.dataset.wi][el.dataset.k]=el.value; save(); render();});
+  W.querySelectorAll("[data-cable]").forEach(el=>el.onchange=()=>{ S.cables[el.dataset.cable][el.dataset.role]=el.value; save(); render(); });
+  W.querySelectorAll("[data-std]").forEach(b=>b.onclick=()=>{ const s=findS(b.dataset.std), std=STD_COLORS[SKU_ROLES[s.sku]]; s.wires.forEach(w=>{ if(std[w.purpose]) w.color=std[w.purpose]; }); save(); render(); });
+  W.querySelectorAll("[data-stdcable]").forEach(b=>b.onclick=()=>{ Object.assign(S.cables[b.dataset.stdcable], STD_COLORS.modbus4); save(); render(); });
+  W.querySelectorAll("[data-openpage]").forEach(b=>b.onclick=()=>openSetupPage(b.dataset.openpage,b.dataset.name));
+  const wb=W.querySelector("#walkBtn"); if(wb) wb.onclick=openWalk;
+  const pr=W.querySelector("#previewReport"); if(pr) pr.onclick=openReport;
+  if(STEPS[S.step].id==="configure") probePages();
   W.querySelectorAll("[data-delwire]").forEach(b=>b.onclick=()=>{const s=findS(b.dataset.delwire); s.wires.splice(+b.dataset.wi,1); save(); render();});
   W.querySelectorAll("[data-addwire]").forEach(b=>b.onclick=()=>{const s=findS(b.dataset.addwire); s.wires.push({color:"red",purpose:"pwr",field:""}); save(); render();});
   W.querySelectorAll("[data-splice]").forEach(sg=>sg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
@@ -1324,7 +1636,7 @@ function bind(){
     if(s.splice) suggestSplice(s);
     save(); track("splice_set",{sku:s.sku,splice:s.splice}); render(); }));
   W.querySelectorAll("[data-copyall]").forEach(b=>b.onclick=()=>{const src=findS(b.dataset.copyall);
-    S.sensors.filter(x=>x.sku===src.sku&&x!==src).forEach(x=>{x.wires=JSON.parse(JSON.stringify(src.wires)); x.splice=src.splice; x.cable=src.cable;});
+    S.sensors.filter(x=>x.sku===src.sku&&x!==src).forEach(x=>{x.wires=JSON.parse(JSON.stringify(src.wires));});
     save(); render(); });
   W.querySelectorAll("[data-add]").forEach(el=>el.onchange=()=>{ S.added[+el.dataset.add][el.dataset.k]=el.value; applyAddedToSplices(); save(); render(); });
   W.querySelectorAll("[data-deladd]").forEach(b=>b.onclick=()=>{ S.added.splice(+b.dataset.deladd,1); save(); render(); });
@@ -1334,7 +1646,6 @@ function bind(){
   W.querySelectorAll("[data-photoin]").forEach(el=>el.onchange=()=>{ if(el.files&&el.files[0]) savePhoto(el.dataset.photoin, el.files[0]); });
   W.querySelectorAll("[data-photodel]").forEach(b=>b.onclick=async()=>{ const s=findS(b.dataset.photodel); await PDB.del(s.id).catch(()=>{}); s.photo=false; s.photoPath=""; save(); render(); });
   fillPhotos(W);
-  const gb=W.querySelector("#geoBtn"); if(gb) gb.onclick=useLocation;
   if(["start","done"].includes(STEPS[S.step].id)) loadBenchStats();
   W.querySelectorAll("[data-opensetup]").forEach(b=>b.onclick=()=>openSetup(b.dataset.opensetup));
   const mb=W.querySelector("#mailBtn2"); if(mb) mb.onclick=openMail;
@@ -1353,7 +1664,7 @@ function setQty(k,v){
 
 document.getElementById("backBtn").onclick=()=>go(S.step-1);
 document.getElementById("nextBtn").onclick=()=>{
-  if(S.step===STEPS.length-1){ snap(); remember(); rememberVessels(); track("complete",{qty:S.qty,sensors:S.sensors.length,seconds:S.bench.seconds}); doPrint(); }
+  if(S.step===STEPS.length-1){ finishInstall(); }
   else go(S.step+1);
 };
 document.getElementById("modeBtn").onclick=()=>{ S.mode=S.mode==="scroll"?"wizard":"scroll"; save(); track("mode",{mode:S.mode}); render(); window.scrollTo({top:0}); };
@@ -1371,7 +1682,11 @@ document.getElementById("modeBtn").onclick=()=>{ S.mode=S.mode==="scroll"?"wizar
 /* timer: first tap or typing inside the app starts it */
 ["pointerdown","input"].forEach(ev=>{ W.addEventListener(ev,startTimer,{passive:true}); document.getElementById("bottombar").addEventListener(ev,startTimer,{passive:true}); });
 
-document.getElementById("fab").onclick=openMail;
+document.getElementById("fab").onclick=openReport;
+document.getElementById("walkClose").onclick=closeWalk;
+document.getElementById("rClose").onclick=closeReport;
+document.getElementById("rSend").onclick=sendReport;
+document.getElementById("rPrint").onclick=()=>{ const fr=document.getElementById("rFrame"); try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){} track("report_print"); };
 document.getElementById("mailCancel").onclick=closeMail;
 document.getElementById("mailSend").onclick=sendGuide;
 document.getElementById("mail").onclick=e=>{ if(e.target.id==="mail") closeMail(); };
@@ -1387,9 +1702,9 @@ function jobName(){ return [S.job.customer,S.job.site].filter(Boolean).join(" ·
 function askNew(onOpen){
   if(!inProgress()){ newInstall(); return; }
   document.getElementById("newTitle").textContent = onOpen ? "Welcome back" : "Start a new install?";
-  document.getElementById("newText").innerHTML = (onOpen?"You have an install in progress: ":"This clears the current install from this phone: ")+
-    `<b>${esc(jobName())}</b> (step ${S.step+1} of ${STEPS.length}). `+
-    "Anything already sent stays in the database. Your installer name and email are kept.";
+  document.getElementById("newText").innerHTML = (onOpen?"You have an unfinished install on this phone: ":"This install isn't finished: ")+
+    `<b>${esc(jobName())}</b> (step ${S.step+1} of ${STEPS.length}).<br><br>`+
+    "<b>Start new install</b> clears it from this phone, photos included. Anything already sent to the database stays there. Your email is kept.";
   document.getElementById("newNo").textContent = onOpen ? "Continue this install" : "Keep working on this one";
   document.getElementById("newModal").classList.remove("hidden");
 }
@@ -1397,7 +1712,7 @@ function newInstall(){
   document.getElementById("newModal").classList.add("hidden");
   if(inProgress()){ snap(); track("new_install",{from_step:STEPS[S.step]?.id}); }
   remember(); rememberVessels(); PDB.clear().catch(()=>{});
-  const keep={installer:S.job.installer, installerEmail:S.job.installerEmail}, email=S.email;
+  const keep={installerEmail:S.job.installerEmail}, email=S.email;
   S=fresh(); Object.assign(S.job,keep); S.email=email; save();
   render(); window.scrollTo({top:0}); track("app_open",{new_install:true});
 }
